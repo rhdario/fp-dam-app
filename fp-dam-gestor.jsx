@@ -1,0 +1,1644 @@
+import React, { useState, useEffect } from 'react';
+
+// ============================================================================
+// DATOS BASE
+// ============================================================================
+
+const baseActivities = {
+  prog: {
+    id: 'prog',
+    name: 'Programación',
+    type: 'fp-critical',
+    color: 'bg-red-500',
+    scheduleNoWork: { start: '08:00', end: '10:00', hours: '2h' },
+    scheduleWithWork: { start: '07:30', end: '08:30', hours: '1h' },
+    technique: 'practica-primero',
+    priority: 1,
+    onlyNoWork: false
+  },
+  bd: {
+    id: 'bd',
+    name: 'Base de Datos',
+    type: 'fp-critical',
+    color: 'bg-red-400',
+    scheduleNoWork: { start: '10:15', end: '11:45', hours: '1.5h' },
+    scheduleWithWork: { start: '17:30', end: '18:30', hours: '1h' },
+    technique: 'practica-primero',
+    priority: 1,
+    onlyNoWork: false
+  },
+  si: {
+    id: 'si',
+    name: 'Sistemas Informáticos',
+    type: 'fp-important',
+    color: 'bg-yellow-500',
+    scheduleNoWork: { start: '15:00', end: '16:00', hours: '1h' },
+    scheduleWithWork: { start: '18:30', end: '19:00', hours: '0.5h' },
+    technique: 'pomodoro',
+    priority: 2,
+    onlyNoWork: false
+  },
+  ed: {
+    id: 'ed',
+    name: 'Entornos Desarrollo',
+    type: 'fp-important',
+    color: 'bg-yellow-400',
+    scheduleNoWork: { start: '16:00', end: '16:45', hours: '0.75h' },
+    scheduleWithWork: { start: '20:30', end: '21:00', hours: '0.5h' },
+    technique: 'pomodoro',
+    priority: 2,
+    onlyNoWork: false
+  },
+  lm: {
+    id: 'lm',
+    name: 'Lenguajes Marcas',
+    type: 'fp-light',
+    color: 'bg-green-500',
+    scheduleNoWork: { start: '16:45', end: '17:30', hours: '0.75h' },
+    scheduleWithWork: { start: 'Var', end: 'Var', hours: 'Var' },
+    technique: 'pomodoro',
+    priority: 3,
+    onlyNoWork: false
+  },
+  digi: {
+    id: 'digi',
+    name: 'Digitalización',
+    type: 'fp-light',
+    color: 'bg-green-400',
+    scheduleNoWork: { start: '17:30', end: '17:50', hours: '0.33h' },
+    scheduleWithWork: { start: 'Var', end: 'Var', hours: 'Var' },
+    technique: 'pomodoro',
+    priority: 3,
+    onlyNoWork: false
+  },
+  ipo: {
+    id: 'ipo',
+    name: 'Itinerario IPO',
+    type: 'fp-light',
+    color: 'bg-green-300',
+    scheduleNoWork: { start: '17:50', end: '18:05', hours: '0.25h' },
+    scheduleWithWork: { start: 'Var', end: 'Var', hours: 'Var' },
+    technique: 'pomodoro',
+    priority: 3,
+    onlyNoWork: false
+  },
+  ingles: {
+    id: 'ingles',
+    name: 'Inglés',
+    type: 'learning',
+    color: 'bg-purple-500',
+    scheduleNoWork: { start: '07:50', end: '08:00', hours: '0.17h' },
+    scheduleWithWork: { start: '20:30', end: '20:50', hours: '0.33h' },
+    technique: 'consistencia',
+    priority: 2,
+    onlyNoWork: false
+  },
+  ias: {
+    id: 'ias',
+    name: 'Estudiar IAs',
+    type: 'learning',
+    color: 'bg-purple-600',
+    scheduleNoWork: { start: '20:00', end: '20:30', hours: '0.5h' },
+    scheduleWithWork: { start: '19:30', end: '20:00', hours: '0.5h' },
+    technique: 'practica-primero',
+    priority: 2,
+    onlyNoWork: false
+  },
+  seo: {
+    id: 'seo',
+    name: 'Estudiar SEO',
+    type: 'learning',
+    color: 'bg-purple-400',
+    scheduleNoWork: { start: '20:30', end: '21:00', hours: '0.5h' },
+    scheduleWithWork: { start: '20:00', end: '20:30', hours: '0.5h' },
+    technique: 'practica-primero',
+    priority: 2,
+    onlyNoWork: false
+  },
+  trabajo: {
+    id: 'trabajo',
+    name: 'Búsqueda Trabajo',
+    type: 'personal',
+    color: 'bg-blue-500',
+    scheduleNoWork: { start: '11:45', end: '13:00', hours: '1.25h' },
+    scheduleWithWork: { start: '', end: '', hours: '' },
+    technique: 'organizacion',
+    priority: 2,
+    onlyNoWork: true
+  },
+  tiempolibre: {
+    id: 'tiempolibre',
+    name: 'Tiempo Libre',
+    type: 'personal',
+    color: 'bg-cyan-400',
+    scheduleNoWork: { start: '18:05', end: '19:00', hours: '0.92h' },
+    scheduleWithWork: { start: '', end: '', hours: '' },
+    technique: 'descanso',
+    priority: 3,
+    onlyNoWork: true
+  },
+  cena: {
+    id: 'cena',
+    name: 'Cena',
+    type: 'personal',
+    color: 'bg-orange-400',
+    scheduleNoWork: { start: '19:00', end: '20:00', hours: '1h' },
+    scheduleWithWork: { start: '22:00', end: '23:00', hours: '1h' },
+    technique: null,
+    priority: 3,
+    onlyNoWork: false
+  },
+  revision: {
+    id: 'revision',
+    name: 'Revisión del Día',
+    type: 'personal',
+    color: 'bg-indigo-500',
+    scheduleNoWork: { start: '20:00', end: '20:30', hours: '0.5h' },
+    scheduleWithWork: { start: '', end: '', hours: '' },
+    technique: 'caja-tiempo',
+    priority: 2,
+    onlyNoWork: true
+  },
+  familia: {
+    id: 'familia',
+    name: 'Pareja/Familia',
+    type: 'personal',
+    color: 'bg-pink-500',
+    scheduleNoWork: { start: '21:00', end: '23:00', hours: '2h' },
+    scheduleWithWork: { start: '21:00', end: '23:00', hours: '2h' },
+    technique: 'presencia',
+    priority: 3,
+    onlyNoWork: false
+  },
+  nocturna: {
+    id: 'nocturna',
+    name: 'Rutina Nocturna',
+    type: 'personal',
+    color: 'bg-indigo-700',
+    scheduleNoWork: { start: '23:00', end: '00:00', hours: '1h' },
+    scheduleWithWork: { start: '23:00', end: '00:00', hours: '1h' },
+    technique: 'sueno',
+    priority: 3,
+    onlyNoWork: false
+  },
+  descanso1: {
+    id: 'descanso1',
+    name: 'Descanso',
+    type: 'break',
+    color: 'bg-amber-400',
+    scheduleNoWork: { start: '10:00', end: '10:15', hours: '0.25h' },
+    scheduleWithWork: { start: '', end: '', hours: '' },
+    technique: 'descanso',
+    priority: 3,
+    onlyNoWork: true
+  },
+  almuerzo: {
+    id: 'almuerzo',
+    name: 'Almuerzo + Descanso',
+    type: 'break',
+    color: 'bg-orange-500',
+    scheduleNoWork: { start: '13:00', end: '15:00', hours: '2h' },
+    scheduleWithWork: { start: '13:00', end: '14:00', hours: '1h' },
+    technique: 'descanso',
+    priority: 3,
+    onlyNoWork: false
+  }
+};
+
+const techniques = {
+  'caja-tiempo': {
+    title: '📦 Caja de Tiempo Cerrada',
+    content: 'Establece bloques de tiempo específicos para cada tarea. Una vez que empieza el bloque, trabaja solo en esa actividad hasta que termine el tiempo. No mezcles tareas ni interrumpas con otras actividades.'
+  },
+  'practica-primero': {
+    title: '💻 Práctica Primero, Teoría Después',
+    content: 'Empieza haciendo ejercicios prácticos antes de estudiar la teoría. Después de practicar, revisa los conceptos teóricos para consolidar lo aprendido. Esta técnica es especialmente efectiva para programación y bases de datos.'
+  },
+  'pomodoro': {
+    title: '⏱️ Pomodoro Adaptado',
+    content: 'Trabaja en bloques de 25 minutos con 5 minutos de descanso. Después de 4 bloques, toma un descanso más largo de 15-30 minutos. Usa un temporizador para mantener el ritmo.'
+  },
+  'consistencia': {
+    title: '🎯 Consistencia Diaria',
+    content: 'Dedica un tiempo corto pero constante cada día a esta actividad. La clave es la repetición diaria, no la cantidad de tiempo. Mejor 10 minutos cada día que 1 hora una vez a la semana.'
+  },
+  'organizacion': {
+    title: '📋 Organización Efectiva',
+    content: 'Planifica tus tareas al inicio del bloque. Prioriza lo más importante. Usa listas de verificación. Revisa tu progreso al final del bloque.'
+  },
+  'descanso': {
+    title: '🌿 Descanso Activo',
+    content: 'Usa este tiempo para desconectar completamente del estudio. Levántate, estira, camina, toma agua. Evita pantallas durante los descansos cortos.'
+  },
+  'sueno': {
+    title: '😴 Rutina de Sueño',
+    content: 'Prepárate para dormir: apaga pantallas, reduce luces, haz actividades relajantes. Mantén un horario consistente de sueño para optimizar el aprendizaje.'
+  },
+  'presencia': {
+    title: '💚 Presencia Total',
+    content: 'Durante este tiempo, desconecta del estudio completamente. Enfócate en estar presente con tus seres queridos. Guarda el teléfono y dedica tu atención plena.'
+  }
+};
+
+// ============================================================================
+// COMPONENTE PRINCIPAL
+// ============================================================================
+
+export default function FPDAMGestor() {
+  // Estados principales
+  const [currentView, setCurrentView] = useState('setup');
+  const [setupStep, setSetupStep] = useState(1);
+  const [hasWork, setHasWork] = useState(null);
+  const [allActivities, setAllActivities] = useState({...baseActivities});
+  const [activeActivities, setActiveActivities] = useState([]);
+  const [completedTasks, setCompletedTasks] = useState({});
+  const [deliveries, setDeliveries] = useState([]);
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [notifiedActivities, setNotifiedActivities] = useState(new Set());
+  const [techniqueModal, setTechniqueModal] = useState(null);
+  const [addItemModal, setAddItemModal] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [cloudService, setCloudService] = useState(null); // 'google', 'microsoft', 'terabox', null
+  const [cloudConnected, setCloudConnected] = useState(false);
+
+  // ============================================================================
+  // FUNCIONES AUXILIARES
+  // ============================================================================
+
+  const formatDate = (date) => {
+    const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+    const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+    return `${dias[date.getDay()]} ${date.getDate()} de ${meses[date.getMonth()]}`;
+  };
+
+  const getDateKey = (date) => {
+    return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+  };
+
+  const toggleTask = (activityId) => {
+    const dateKey = getDateKey(currentDate);
+    setCompletedTasks(prev => ({
+      ...prev,
+      [dateKey]: {
+        ...(prev[dateKey] || {}),
+        [activityId]: !(prev[dateKey]?.[activityId] || false)
+      }
+    }));
+  };
+
+  const isTaskCompleted = (activityId, date = currentDate) => {
+    const dateKey = getDateKey(date);
+    return completedTasks[dateKey]?.[activityId] || false;
+  };
+
+  const getProgress = (date) => {
+    const dateKey = getDateKey(date);
+    const tasks = completedTasks[dateKey] || {};
+    const completed = Object.values(tasks).filter(Boolean).length;
+    const total = activeActivities.length;
+    return total === 0 ? 0 : Math.round((completed / total) * 100);
+  };
+
+  const getDaysUntilDelivery = (deliveryDate) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const delivery = new Date(deliveryDate);
+    delivery.setHours(0, 0, 0, 0);
+    const diff = delivery - today;
+    return Math.ceil(diff / (1000 * 60 * 60 * 24));
+  };
+
+  const addDelivery = (subject, date, description) => {
+    if (!subject || !date || !description) {
+      alert('⚠️ Por favor completa todos los campos');
+      return;
+    }
+    const newDelivery = {
+      id: Date.now(),
+      subject,
+      date: new Date(date),
+      description,
+      created: new Date()
+    };
+    setDeliveries(prev => [...prev, newDelivery].sort((a, b) => a.date - b.date));
+    
+    const daysUntil = getDaysUntilDelivery(date);
+    if (daysUntil >= 0 && daysUntil <= 3) {
+      alert('✅ Entrega agregada! Como quedan ≤3 días, el horario se ajustará automáticamente');
+    } else {
+      alert('✅ Entrega agregada correctamente');
+    }
+  };
+
+  const deleteDelivery = (id) => {
+    if (confirm('¿Eliminar esta entrega?')) {
+      setDeliveries(prev => prev.filter(d => d.id !== id));
+    }
+  };
+
+  const downloadBackup = () => {
+    const data = {
+      hasWork,
+      allActivities,
+      activeActivities,
+      completedTasks,
+      deliveries,
+      exportDate: new Date().toISOString(),
+      version: '1.0'
+    };
+    const json = JSON.stringify(data, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `fp-dam-backup-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    alert('✅ Backup descargado correctamente');
+  };
+
+  const restoreBackup = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = JSON.parse(e.target.result);
+        
+        // Validar estructura básica
+        if (!data.hasWork === undefined || !data.allActivities || !data.activeActivities) {
+          throw new Error('Estructura de backup inválida');
+        }
+        
+        setHasWork(data.hasWork);
+        setAllActivities(data.allActivities);
+        setActiveActivities(data.activeActivities);
+        setCompletedTasks(data.completedTasks || {});
+        setDeliveries((data.deliveries || []).map(d => ({
+          ...d,
+          date: new Date(d.date),
+          created: new Date(d.created)
+        })));
+        setCurrentView('home');
+        alert('✅ Backup restaurado correctamente');
+        
+        // Limpiar el input
+        event.target.value = '';
+      } catch (error) {
+        console.error('Error al restaurar:', error);
+        alert('❌ Error al restaurar backup. Archivo inválido o corrupto.');
+        event.target.value = '';
+      }
+    };
+    reader.onerror = () => {
+      alert('❌ Error al leer el archivo');
+      event.target.value = '';
+    };
+    reader.readAsText(file);
+  };
+
+  const connectCloudService = (service) => {
+    // Simulación de conexión - en producción aquí irían las APIs reales
+    setCloudService(service);
+    setCloudConnected(true);
+    
+    const serviceNames = {
+      google: 'Google Drive',
+      microsoft: 'OneDrive',
+      terabox: 'TeraBox'
+    };
+    
+    alert(`🔗 Conectado a ${serviceNames[service]}!\n\nPróximamente: Sincronización automática de backups.`);
+  };
+
+  const disconnectCloudService = () => {
+    if (confirm('¿Desconectar del servicio en la nube?')) {
+      setCloudService(null);
+      setCloudConnected(false);
+      alert('✅ Desconectado correctamente');
+    }
+  };
+
+  const resetApp = () => {
+    if (confirm('⚠️ Esto borrará TODOS los datos. ¿Estás seguro?')) {
+      sessionStorage.removeItem('fpDamApp');
+      setCurrentView('setup');
+      setSetupStep(1);
+      setHasWork(null);
+      setAllActivities({...baseActivities});
+      setActiveActivities([]);
+      setCompletedTasks({});
+      setDeliveries([]);
+      setNotifiedActivities(new Set());
+      alert('✅ Configuración reiniciada');
+    }
+  };
+
+  const addCustomActivity = (activity) => {
+    const customId = `custom_${Date.now()}`;
+    const newActivity = {
+      ...activity,
+      id: customId
+    };
+    setAllActivities(prev => ({...prev, [customId]: newActivity}));
+    setActiveActivities(prev => [...prev, customId]);
+    setAddItemModal(false);
+    alert('✅ Ítem agregado');
+  };
+
+  // ============================================================================
+  // EFECTOS
+  // ============================================================================
+
+  // Reloj tiempo real
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Pedir permisos notificación
+  useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+  }, []);
+
+  // Sistema de alarmas
+  useEffect(() => {
+    const now = new Date();
+    const currentTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    const todayKey = getDateKey(now);
+    const schedule = hasWork === false ? 'scheduleNoWork' : 'scheduleWithWork';
+    
+    activeActivities.forEach(activityId => {
+      const activity = allActivities[activityId];
+      if (!activity) return;
+      
+      const sched = activity[schedule];
+      if (!sched || sched.start === '' || sched.start === 'Var') return;
+      
+      const notificationKey = `${todayKey}-${activityId}-${sched.start}`;
+      
+      if (sched.start === currentTimeStr && !notifiedActivities.has(notificationKey)) {
+        if ('Notification' in window && Notification.permission === 'granted') {
+          new Notification('⏰ FP DAM - Es la hora!', {
+            body: `Ahora: ${activity.name} (${sched.hours})`,
+            icon: '📚',
+            tag: notificationKey
+          });
+        }
+        
+        setNotifiedActivities(prev => new Set([...prev, notificationKey]));
+      }
+    });
+  }, [currentTime, allActivities, activeActivities, hasWork, notifiedActivities]);
+
+  // Ajuste automático entregas urgentes con redistribución inteligente
+  useEffect(() => {
+    if (deliveries.length === 0) return;
+    
+    // Resetear todos los boosts primero
+    const resetActivities = {...allActivities};
+    Object.keys(resetActivities).forEach(key => {
+      if (resetActivities[key].boosted) {
+        const schedule = hasWork === false ? 'scheduleNoWork' : 'scheduleWithWork';
+        resetActivities[key][schedule].hours = resetActivities[key].originalHours;
+        delete resetActivities[key].boosted;
+        delete resetActivities[key].originalHours;
+      }
+    });
+    
+    // Identificar entregas urgentes
+    const urgentDeliveries = deliveries.filter(d => {
+      const daysUntil = getDaysUntilDelivery(d.date);
+      return daysUntil >= 0 && daysUntil <= 3;
+    });
+    
+    if (urgentDeliveries.length > 0) {
+      const updatedActivities = {...resetActivities};
+      const schedule = hasWork === false ? 'scheduleNoWork' : 'scheduleWithWork';
+      
+      urgentDeliveries.forEach(delivery => {
+        const activity = updatedActivities[delivery.subject];
+        if (activity && activity[schedule] && activity[schedule].hours !== 'Var') {
+          const currentHours = parseFloat(activity[schedule].hours);
+          if (!isNaN(currentHours)) {
+            // Calcular multiplicador según días restantes
+            const daysUntil = getDaysUntilDelivery(delivery.date);
+            let multiplier = 2; // Por defecto duplicar
+            
+            if (daysUntil === 0) multiplier = 3; // Triplicar si es hoy
+            else if (daysUntil === 1) multiplier = 2.5; // 2.5x si es mañana
+            else if (daysUntil <= 3) multiplier = 2; // 2x si quedan 2-3 días
+            
+            const boostedHours = currentHours * multiplier;
+            
+            activity.boosted = true;
+            activity.originalHours = activity[schedule].hours;
+            activity.boostedMultiplier = multiplier;
+            activity.deliveryDate = delivery.date;
+            activity[schedule].hours = `${boostedHours.toFixed(1)}h`;
+            
+            console.log(`📚 ${activity.name}: ${activity.originalHours} → ${activity[schedule].hours} (${multiplier}x)`);
+          }
+        }
+      });
+      
+      setAllActivities(updatedActivities);
+    } else {
+      // Si no hay entregas urgentes, asegurarse de que todo esté reseteado
+      setAllActivities(resetActivities);
+    }
+  }, [deliveries, hasWork]);
+
+  // Persistencia sessionStorage
+  useEffect(() => {
+    const saved = sessionStorage.getItem('fpDamApp');
+    if (saved) {
+      try {
+        const data = JSON.parse(saved);
+        if (data.hasWork !== null) {
+          setCurrentView('home');
+          setSetupStep(1);
+        }
+        setHasWork(data.hasWork);
+        setAllActivities(data.allActivities);
+        setActiveActivities(data.activeActivities);
+        setCompletedTasks(data.completedTasks);
+        setDeliveries(data.deliveries.map(d => ({
+          ...d,
+          date: new Date(d.date),
+          created: new Date(d.created)
+        })));
+      } catch (e) {
+        console.error('Error loading:', e);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (hasWork !== null && Object.keys(allActivities).length > 0) {
+      sessionStorage.setItem('fpDamApp', JSON.stringify({
+        hasWork,
+        allActivities,
+        activeActivities,
+        completedTasks,
+        deliveries
+      }));
+    }
+  }, [hasWork, allActivities, activeActivities, completedTasks, deliveries]);
+
+  // ============================================================================
+  // COMPONENTES
+  // ============================================================================
+
+  const TopBar = () => (
+    <div className="sticky top-0 z-40 bg-white border-b-2 border-gray-200 px-4 py-4 flex items-center justify-between shadow-sm">
+      <button onClick={() => setMenuOpen(true)} className="text-2xl">☰</button>
+      <div className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+        FP DAM Gestor
+      </div>
+      <button onClick={() => setCurrentView('settings')} className="text-2xl">⚙️</button>
+    </div>
+  );
+
+  const SideMenu = () => (
+    <>
+      {menuOpen && (
+        <div className="fixed inset-0 z-50 flex">
+          <div className="bg-white w-72 shadow-2xl overflow-y-auto">
+            <div className="bg-gradient-to-br from-blue-600 to-purple-600 text-white p-6">
+              <h2 className="text-2xl font-bold">Menú</h2>
+            </div>
+            <div className="p-4 space-y-2">
+              {[
+                { icon: '🏠', text: 'Inicio', view: 'home' },
+                { icon: '📅', text: 'Vista Diaria', view: 'daily' },
+                { icon: '📊', text: 'Vista Semanal', view: 'weekly' },
+                { icon: '📚', text: 'Entregas', view: 'deliveries' },
+                { icon: '📈', text: 'Estadísticas', view: 'stats' },
+                { icon: '⚙️', text: 'Configuración', view: 'settings' }
+              ].map(item => (
+                <button
+                  key={item.view}
+                  onClick={() => { setCurrentView(item.view); setMenuOpen(false); }}
+                  className="w-full text-left p-4 rounded-xl hover:bg-blue-50 transition-all flex items-center gap-3 text-lg"
+                >
+                  <span className="text-2xl">{item.icon}</span>
+                  <span>{item.text}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="flex-1 bg-black bg-opacity-50" onClick={() => setMenuOpen(false)} />
+        </div>
+      )}
+    </>
+  );
+
+  const TechniqueModal = () => (
+    <>
+      {techniqueModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50" onClick={() => setTechniqueModal(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <h3 className="text-2xl font-bold mb-4">{techniques[techniqueModal].title}</h3>
+            <p className="text-gray-700 leading-relaxed mb-6">{techniques[techniqueModal].content}</p>
+            <button
+              onClick={() => setTechniqueModal(null)}
+              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-xl font-semibold hover:shadow-lg transition-all"
+            >
+              Entendido
+            </button>
+          </div>
+        </div>
+      )}
+    </>
+  );
+
+  const AddItemModal = () => {
+    const [newItem, setNewItem] = useState({
+      name: '',
+      type: 'personal',
+      color: 'bg-blue-500',
+      scheduleNoWork: { start: '', end: '', hours: '' },
+      scheduleWithWork: { start: '', end: '', hours: '' },
+      technique: null,
+      priority: 2,
+      onlyNoWork: false
+    });
+
+    const colors = ['bg-red-500', 'bg-yellow-500', 'bg-green-500', 'bg-blue-500', 'bg-purple-500', 'bg-pink-500', 'bg-orange-500', 'bg-indigo-500'];
+
+    const handleSubmit = () => {
+      if (!newItem.name || !newItem.scheduleNoWork.start) {
+        alert('⚠️ Completa al menos el nombre y hora de inicio');
+        return;
+      }
+      addCustomActivity(newItem);
+    };
+
+    return (
+      <>
+        {addItemModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 overflow-y-auto">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-6 my-8">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-2xl font-bold">Agregar Ítem Personalizado</h3>
+                <button onClick={() => setAddItemModal(false)} className="text-3xl hover:text-red-500">×</button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block font-semibold mb-2">Nombre</label>
+                  <input
+                    type="text"
+                    value={newItem.name}
+                    onChange={e => setNewItem({...newItem, name: e.target.value})}
+                    className="w-full p-3 border-2 rounded-xl"
+                    placeholder="Ej: Proyecto Personal"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-semibold mb-2">Tipo</label>
+                  <select
+                    value={newItem.type}
+                    onChange={e => setNewItem({...newItem, type: e.target.value})}
+                    className="w-full p-3 border-2 rounded-xl"
+                  >
+                    <option value="personal">Personal</option>
+                    <option value="learning">Aprendizaje</option>
+                    <option value="fp-critical">FP Crítico</option>
+                    <option value="fp-important">FP Importante</option>
+                    <option value="fp-light">FP Ligero</option>
+                    <option value="break">Descanso</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-semibold mb-2">Color</label>
+                  <div className="grid grid-cols-4 gap-3">
+                    {colors.map(color => (
+                      <button
+                        key={color}
+                        onClick={() => setNewItem({...newItem, color})}
+                        className={`h-12 rounded-xl ${color} ${newItem.color === color ? 'ring-4 ring-blue-500' : ''}`}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                <div className="border-t-2 pt-4">
+                  <h4 className="font-bold mb-3">Horario Sin Trabajo</h4>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-sm mb-1">Inicio</label>
+                      <input
+                        type="time"
+                        value={newItem.scheduleNoWork.start}
+                        onChange={e => setNewItem({...newItem, scheduleNoWork: {...newItem.scheduleNoWork, start: e.target.value}})}
+                        className="w-full p-2 border-2 rounded-lg"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm mb-1">Fin</label>
+                      <input
+                        type="time"
+                        value={newItem.scheduleNoWork.end}
+                        onChange={e => setNewItem({...newItem, scheduleNoWork: {...newItem.scheduleNoWork, end: e.target.value}})}
+                        className="w-full p-2 border-2 rounded-lg"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm mb-1">Duración</label>
+                      <input
+                        type="text"
+                        value={newItem.scheduleNoWork.hours}
+                        onChange={e => setNewItem({...newItem, scheduleNoWork: {...newItem.scheduleNoWork, hours: e.target.value}})}
+                        className="w-full p-2 border-2 rounded-lg"
+                        placeholder="1h"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border-t-2 pt-4">
+                  <h4 className="font-bold mb-3">Horario Con Trabajo</h4>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-sm mb-1">Inicio</label>
+                      <input
+                        type="time"
+                        value={newItem.scheduleWithWork.start}
+                        onChange={e => setNewItem({...newItem, scheduleWithWork: {...newItem.scheduleWithWork, start: e.target.value}})}
+                        className="w-full p-2 border-2 rounded-lg"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm mb-1">Fin</label>
+                      <input
+                        type="time"
+                        value={newItem.scheduleWithWork.end}
+                        onChange={e => setNewItem({...newItem, scheduleWithWork: {...newItem.scheduleWithWork, end: e.target.value}})}
+                        className="w-full p-2 border-2 rounded-lg"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm mb-1">Duración</label>
+                      <input
+                        type="text"
+                        value={newItem.scheduleWithWork.hours}
+                        onChange={e => setNewItem({...newItem, scheduleWithWork: {...newItem.scheduleWithWork, hours: e.target.value}})}
+                        className="w-full p-2 border-2 rounded-lg"
+                        placeholder="1h"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  onClick={handleSubmit}
+                  className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-4 rounded-xl font-bold text-lg hover:shadow-lg transition-all"
+                >
+                  Agregar Ítem
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </>
+    );
+  };
+
+  // ============================================================================
+  // VISTAS
+  // ============================================================================
+
+  const SetupView = () => {
+    if (setupStep === 1) {
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full">
+            <div className="text-center mb-8">
+              <div className="text-6xl mb-4">📚</div>
+              <h1 className="text-3xl font-bold mb-2">FP DAM Gestor</h1>
+              <p className="text-gray-600">Primero, cuéntanos tu situación actual</p>
+            </div>
+
+            <div className="space-y-4">
+              <button
+                onClick={() => { setHasWork(false); setSetupStep(2); }}
+                className="w-full bg-green-500 hover:bg-green-600 text-white py-6 rounded-2xl font-bold text-xl shadow-lg transition-all"
+              >
+                🟢 Sin trabajo
+              </button>
+              <button
+                onClick={() => { setHasWork(true); setSetupStep(2); }}
+                className="w-full bg-blue-500 hover:bg-blue-600 text-white py-6 rounded-2xl font-bold text-xl shadow-lg transition-all"
+              >
+                🔵 Con trabajo (8h)
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (setupStep === 2) {
+      const toggleActivity = (activityId) => {
+        setActiveActivities(prev =>
+          prev.includes(activityId)
+            ? prev.filter(id => id !== activityId)
+            : [...prev, activityId]
+        );
+      };
+
+      const getTypeBadge = (type) => {
+        const badges = {
+          'fp-critical': 'FP Crítico',
+          'fp-important': 'FP Importante',
+          'fp-light': 'FP Ligero',
+          'learning': 'Aprendizaje',
+          'personal': 'Personal',
+          'break': 'Descanso'
+        };
+        return badges[type] || type;
+      };
+
+      return (
+        <div className="min-h-screen bg-gray-50 p-4">
+          <div className="max-w-2xl mx-auto">
+            <div className="bg-white rounded-3xl shadow-xl p-6 mb-6">
+              <h2 className="text-2xl font-bold mb-2">Selecciona las actividades</h2>
+              <p className="text-gray-600">Marca las que quieras activar en tu agenda</p>
+            </div>
+
+            <div className="bg-white rounded-3xl shadow-xl p-6 mb-6 max-h-[60vh] overflow-y-auto">
+              <div className="space-y-3">
+                {Object.values(allActivities).map(activity => {
+                  if (hasWork && activity.onlyNoWork) return null;
+                  
+                  return (
+                    <label
+                      key={activity.id}
+                      className="flex items-center gap-4 p-4 rounded-xl hover:bg-gray-50 cursor-pointer transition-all border-2 border-gray-100"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={activeActivities.includes(activity.id)}
+                        onChange={() => toggleActivity(activity.id)}
+                        className="w-6 h-6"
+                      />
+                      <div className={`w-4 h-4 rounded-full ${activity.color}`} />
+                      <div className="flex-1">
+                        <div className="font-semibold">{activity.name}</div>
+                        <div className="text-sm text-gray-500">{getTypeBadge(activity.type)}</div>
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+
+            <button
+              onClick={() => setAddItemModal(true)}
+              className="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 py-4 rounded-2xl font-semibold mb-4 transition-all"
+            >
+              + Agregar Ítem Personalizado
+            </button>
+
+            <button
+              onClick={() => {
+                if (activeActivities.length === 0) {
+                  alert('⚠️ Selecciona al menos 1 actividad');
+                  return;
+                }
+                setCurrentView('home');
+              }}
+              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-6 rounded-2xl font-bold text-xl shadow-lg hover:shadow-2xl transition-all"
+            >
+              ¡Empezar! 🚀
+            </button>
+          </div>
+        </div>
+      );
+    }
+  };
+
+  const HomeView = () => {
+    const upcomingDeliveries = deliveries.slice(0, 3);
+    const fpActivities = activeActivities
+      .map(id => allActivities[id])
+      .filter(a => a && a.type.startsWith('fp-'));
+
+    return (
+      <div className="min-h-screen bg-gray-50 pb-20">
+        <TopBar />
+        
+        <div className="p-4 space-y-6">
+          <div className="bg-gradient-to-br from-blue-600 to-purple-600 rounded-3xl shadow-xl p-8 text-white">
+            <div className="text-center">
+              <div className="text-5xl font-bold mb-2">{formatDate(new Date())}</div>
+              <div className="text-3xl font-mono">{currentTime.toLocaleTimeString('es-ES')}</div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            {[
+              { icon: '📅', text: 'Hoy', view: 'daily' },
+              { icon: '🕐', text: 'Semana', view: 'weekly' },
+              { icon: '📚', text: 'Entregas', view: 'deliveries' },
+              { icon: '📈', text: 'Stats', view: 'stats' }
+            ].map(item => (
+              <button
+                key={item.view}
+                onClick={() => setCurrentView(item.view)}
+                className="bg-white rounded-2xl shadow-lg p-6 hover:shadow-xl transition-all"
+              >
+                <div className="text-5xl mb-3">{item.icon}</div>
+                <div className="font-bold text-lg">{item.text}</div>
+              </button>
+            ))}
+          </div>
+
+          {upcomingDeliveries.length > 0 && (
+            <div className="bg-white rounded-3xl shadow-xl p-6">
+              <h3 className="text-xl font-bold mb-4">Próximas Entregas</h3>
+              <div className="space-y-3">
+                {upcomingDeliveries.map(delivery => {
+                  const daysUntil = getDaysUntilDelivery(delivery.date);
+                  const isUrgent = daysUntil >= 0 && daysUntil <= 3;
+                  
+                  return (
+                    <div key={delivery.id} className={`p-4 rounded-xl ${isUrgent ? 'bg-red-50 border-2 border-red-500' : 'bg-gray-50'}`}>
+                      <div className="font-bold">{allActivities[delivery.subject]?.name}</div>
+                      <div className="text-sm text-gray-600">{delivery.description}</div>
+                      <div className={`inline-block mt-2 px-3 py-1 rounded-full text-sm font-semibold ${isUrgent ? 'bg-red-500 text-white' : 'bg-blue-500 text-white'}`}>
+                        {daysUntil === 0 ? 'Hoy' : daysUntil === 1 ? 'Mañana' : `${daysUntil} días`}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {fpActivities.length > 0 && (
+            <div className="bg-white rounded-3xl shadow-xl p-6">
+              <h3 className="text-xl font-bold mb-4">Materias FP Activas</h3>
+              <div className="space-y-3">
+                {fpActivities.map(activity => {
+                  const schedule = hasWork === false ? 'scheduleNoWork' : 'scheduleWithWork';
+                  const sched = activity[schedule];
+                  
+                  return (
+                    <div key={activity.id} className="flex items-center gap-3 p-3 rounded-xl bg-gray-50">
+                      <div className={`w-4 h-4 rounded-full ${activity.color}`} />
+                      <div className="flex-1">
+                        <div className="font-semibold">{activity.name}</div>
+                        {sched && sched.start !== '' && sched.start !== 'Var' && (
+                          <div className="text-sm text-gray-600">{sched.start} - {sched.end}</div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const DailyView = () => {
+    const isSunday = currentDate.getDay() === 0;
+    const progress = getProgress(currentDate);
+    const schedule = hasWork === false ? 'scheduleNoWork' : 'scheduleWithWork';
+
+    const sortedActivities = activeActivities
+      .map(id => allActivities[id])
+      .filter(a => {
+        if (!a) return false;
+        if (hasWork && a.onlyNoWork) return false;
+        const sched = a[schedule];
+        return sched && sched.start !== '' && sched.start !== 'Var';
+      })
+      .sort((a, b) => {
+        const timeA = a[schedule].start;
+        const timeB = b[schedule].start;
+        return timeA.localeCompare(timeB);
+      });
+
+    return (
+      <div className="min-h-screen bg-gray-50 pb-20">
+        <TopBar />
+        
+        <div className="sticky top-16 z-30 bg-white border-b-2 shadow-sm p-4">
+          <div className="flex items-center justify-between mb-3">
+            <button
+              onClick={() => setCurrentDate(new Date(currentDate.getTime() - 86400000))}
+              className="text-3xl p-2"
+            >
+              ←
+            </button>
+            <div className="text-lg font-bold">{formatDate(currentDate)}</div>
+            <button
+              onClick={() => setCurrentDate(new Date(currentDate.getTime() + 86400000))}
+              className="text-3xl p-2"
+            >
+              →
+            </button>
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-3">
+            <div
+              className="bg-gradient-to-r from-blue-600 to-purple-600 h-3 rounded-full transition-all"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+          <div className="text-center text-sm font-semibold mt-2">Progreso del día {progress}%</div>
+        </div>
+
+        <div className="p-4 space-y-4">
+          <div className="bg-orange-100 border-2 border-orange-500 rounded-2xl p-4">
+            <div className="text-center">
+              <span className="text-2xl">🔔</span>
+              <div className="font-semibold mt-2">Sistema de Alarmas Activo</div>
+              <div className="text-sm text-gray-600">Recibirás notificaciones cuando empiece cada actividad</div>
+            </div>
+          </div>
+
+          {isSunday ? (
+            <div className="bg-green-100 border-2 border-green-500 rounded-3xl p-8 text-center">
+              <div className="text-6xl mb-4">🎉</div>
+              <div className="text-2xl font-bold">Día de Descanso</div>
+              <div className="text-lg text-gray-600 mt-2">Domingo OFF</div>
+            </div>
+          ) : (
+            <div className="bg-white rounded-3xl shadow-xl p-6">
+              <h3 className="text-xl font-bold mb-4">📅 Agenda del Día</h3>
+              <div className="space-y-3">
+                {sortedActivities.map(activity => {
+                  const sched = activity[schedule];
+                  const completed = isTaskCompleted(activity.id);
+                  
+                  return (
+                    <div
+                      key={activity.id}
+                      className={`p-4 rounded-xl border-2 transition-all ${completed ? 'bg-green-50 border-green-500' : 'bg-gray-50 border-gray-200'}`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <button
+                          onClick={() => toggleTask(activity.id)}
+                          className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all ${completed ? 'bg-green-500 border-green-500' : 'border-gray-300'}`}
+                        >
+                          {completed && <span className="text-white font-bold">✓</span>}
+                        </button>
+                        
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="font-bold text-lg">{activity.name}</span>
+                            <span className={`${activity.color} text-white px-3 py-1 rounded-full text-sm font-semibold`}>
+                              {sched.hours}
+                            </span>
+                            {activity.boosted && (
+                              <span className="bg-orange-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
+                                {activity.originalHours} → {sched.hours} 🔥
+                              </span>
+                            )}
+                          </div>
+                          
+                          <div className="flex items-center gap-2 text-gray-600">
+                            <span>⏱️</span>
+                            <span>{sched.start} - {sched.end}</span>
+                          </div>
+                          
+                          {activity.technique && (
+                            <button
+                              onClick={() => setTechniqueModal(activity.technique)}
+                              className="mt-2 bg-blue-100 hover:bg-blue-200 text-blue-700 px-4 py-2 rounded-lg text-sm font-semibold transition-all"
+                            >
+                              💡 Ver Técnica
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const WeeklyView = () => {
+    const getWeekDays = () => {
+      const days = [];
+      const today = new Date();
+      const currentDay = today.getDay();
+      const monday = new Date(today);
+      monday.setDate(today.getDate() - currentDay + (currentDay === 0 ? -6 : 1));
+      
+      for (let i = 0; i < 7; i++) {
+        const day = new Date(monday);
+        day.setDate(monday.getDate() + i);
+        days.push(day);
+      }
+      return days;
+    };
+
+    const weekDays = getWeekDays();
+    const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+
+    return (
+      <div className="min-h-screen bg-gray-50 pb-20">
+        <TopBar />
+        
+        <div className="p-4 space-y-4">
+          <div className="bg-white rounded-3xl shadow-xl p-6">
+            <h2 className="text-2xl font-bold">Vista Semanal</h2>
+            <p className="text-gray-600">Semana del {formatDate(weekDays[0])}</p>
+          </div>
+
+          <div className="space-y-3">
+            {weekDays.map((day, index) => {
+              const isSunday = day.getDay() === 0;
+              const isToday = getDateKey(day) === getDateKey(new Date());
+              const progress = getProgress(day);
+              
+              return (
+                <div
+                  key={index}
+                  className={`bg-white rounded-2xl shadow-lg p-6 ${isToday ? 'ring-4 ring-blue-500' : ''}`}
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div>
+                      <div className="font-bold text-lg">{dayNames[day.getDay()]} {day.getDate()}</div>
+                      {isToday && <span className="text-sm text-blue-600 font-semibold">Hoy</span>}
+                    </div>
+                    {isSunday ? (
+                      <span className="bg-green-500 text-white px-4 py-2 rounded-full font-semibold">
+                        OFF 🎉
+                      </span>
+                    ) : (
+                      <div className="text-3xl font-bold text-blue-600">{progress}%</div>
+                    )}
+                  </div>
+                  
+                  {!isSunday && (
+                    <div className="w-full bg-gray-200 rounded-full h-3">
+                      <div
+                        className="bg-gradient-to-r from-blue-600 to-purple-600 h-3 rounded-full transition-all"
+                        style={{ width: `${progress}%` }}
+                      />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const DeliveriesView = () => {
+    const [newDelivery, setNewDelivery] = useState({
+      subject: '',
+      date: '',
+      description: ''
+    });
+
+    const fpSubjects = Object.values(allActivities).filter(a => a.type.startsWith('fp-'));
+
+    const handleAdd = (e) => {
+      e.preventDefault();
+      addDelivery(newDelivery.subject, newDelivery.date, newDelivery.description);
+      setNewDelivery({ subject: '', date: '', description: '' });
+    };
+
+    return (
+      <div className="min-h-screen bg-gray-50 pb-20">
+        <TopBar />
+        
+        <div className="p-4 space-y-6">
+          <div className="bg-white rounded-3xl shadow-xl p-6">
+            <h2 className="text-2xl font-bold mb-2">Entregas</h2>
+            <p className="text-gray-600">Ajustan automáticamente tu horario</p>
+          </div>
+
+          <div className="bg-white rounded-3xl shadow-xl p-6">
+            <h3 className="text-lg font-bold mb-4">Nueva Entrega</h3>
+            <form onSubmit={handleAdd} className="space-y-4">
+              <div>
+                <label className="block font-semibold mb-2">Materia FP</label>
+                <select
+                  value={newDelivery.subject}
+                  onChange={e => setNewDelivery({...newDelivery, subject: e.target.value})}
+                  className="w-full p-3 border-2 rounded-xl bg-white"
+                  required
+                >
+                  <option value="">Selecciona una materia...</option>
+                  {fpSubjects.map(subject => (
+                    <option key={subject.id} value={subject.id}>{subject.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block font-semibold mb-2">Fecha de Entrega</label>
+                <input
+                  type="date"
+                  value={newDelivery.date}
+                  onChange={e => setNewDelivery({...newDelivery, date: e.target.value})}
+                  className="w-full p-3 border-2 rounded-xl"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold mb-2">Descripción</label>
+                <input
+                  type="text"
+                  value={newDelivery.description}
+                  onChange={e => setNewDelivery({...newDelivery, description: e.target.value})}
+                  className="w-full p-3 border-2 rounded-xl"
+                  placeholder="Ej: Proyecto final módulo 2"
+                  required
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-4 rounded-xl font-bold hover:shadow-lg transition-all"
+              >
+                + Agregar Entrega
+              </button>
+            </form>
+          </div>
+
+          {deliveries.length > 0 && (
+            <div className="bg-white rounded-3xl shadow-xl p-6">
+              <h3 className="text-lg font-bold mb-4">Entregas Programadas</h3>
+              <div className="space-y-3">
+                {deliveries.map(delivery => {
+                  const daysUntil = getDaysUntilDelivery(delivery.date);
+                  const isUrgent = daysUntil >= 0 && daysUntil <= 3;
+                  const activity = allActivities[delivery.subject];
+                  
+                  // Calcular boost
+                  let boostInfo = null;
+                  if (isUrgent && activity?.boosted) {
+                    const multiplier = activity.boostedMultiplier || 2;
+                    const originalHours = parseFloat(activity.originalHours);
+                    const newHours = parseFloat(activity[hasWork === false ? 'scheduleNoWork' : 'scheduleWithWork'].hours);
+                    const addedHours = newHours - originalHours;
+                    boostInfo = {
+                      multiplier,
+                      original: activity.originalHours,
+                      new: activity[hasWork === false ? 'scheduleNoWork' : 'scheduleWithWork'].hours,
+                      added: addedHours.toFixed(1)
+                    };
+                  }
+                  
+                  return (
+                    <div
+                      key={delivery.id}
+                      className={`p-4 rounded-xl border-2 ${isUrgent ? 'bg-red-50 border-red-500' : 'bg-gray-50 border-gray-200'}`}
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="font-bold text-lg">{activity?.name}</div>
+                        <button
+                          onClick={() => deleteDelivery(delivery.id)}
+                          className="text-red-500 text-2xl hover:text-red-700 transition-colors"
+                        >
+                          🗑️
+                        </button>
+                      </div>
+                      
+                      <div className="text-gray-600 mb-2">{delivery.description}</div>
+                      
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm text-gray-500">
+                          📅 {delivery.date.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}
+                        </span>
+                        <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                          daysUntil < 0 ? 'bg-gray-500 text-white' :
+                          daysUntil === 0 ? 'bg-red-600 text-white' :
+                          daysUntil === 1 ? 'bg-red-500 text-white' :
+                          daysUntil <= 3 ? 'bg-orange-500 text-white' :
+                          'bg-blue-500 text-white'
+                        }`}>
+                          {daysUntil < 0 ? '❌ Vencida' : 
+                           daysUntil === 0 ? '🔥 HOY' : 
+                           daysUntil === 1 ? '⚡ Mañana' : 
+                           `⏰ ${daysUntil} días`}
+                        </span>
+                      </div>
+                      
+                      {boostInfo && (
+                        <div className="mt-3 p-3 bg-orange-100 border-2 border-orange-500 rounded-lg">
+                          <div className="font-bold text-orange-700 mb-1">
+                            🔥 Horario Ajustado Automáticamente
+                          </div>
+                          <div className="text-sm text-orange-800">
+                            <div>• Tiempo original: <strong>{boostInfo.original}</strong></div>
+                            <div>• Tiempo ajustado: <strong>{boostInfo.new}</strong> ({boostInfo.multiplier}x)</div>
+                            <div>• Tiempo adicional: <strong>+{boostInfo.added}h</strong></div>
+                          </div>
+                          <div className="text-xs text-orange-600 mt-2 italic">
+                            💡 El horario se restaurará automáticamente cuando pase la fecha de entrega
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const StatsView = () => {
+    const totalCompleted = Object.values(completedTasks).reduce(
+      (sum, tasks) => sum + Object.values(tasks).filter(Boolean).length,
+      0
+    );
+
+    const last7Days = [];
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      last7Days.push(date);
+    }
+
+    const activityStats = activeActivities.map(id => {
+      const activity = allActivities[id];
+      const completed = Object.values(completedTasks).reduce(
+        (sum, tasks) => sum + (tasks[id] ? 1 : 0),
+        0
+      );
+      return { activity, completed };
+    }).sort((a, b) => b.completed - a.completed).slice(0, 10);
+
+    return (
+      <div className="min-h-screen bg-gray-50 pb-20">
+        <TopBar />
+        
+        <div className="p-4 space-y-6">
+          <div className="bg-white rounded-3xl shadow-xl p-6">
+            <h2 className="text-2xl font-bold">Estadísticas</h2>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-gradient-to-br from-blue-600 to-blue-400 rounded-2xl shadow-lg p-6 text-white">
+              <div className="text-4xl font-bold mb-2">{totalCompleted}</div>
+              <div className="text-sm">Tareas Completadas</div>
+            </div>
+            <div className="bg-gradient-to-br from-purple-600 to-purple-400 rounded-2xl shadow-lg p-6 text-white">
+              <div className="text-4xl font-bold mb-2">{deliveries.length}</div>
+              <div className="text-sm">Entregas Pendientes</div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-3xl shadow-xl p-6">
+            <h3 className="text-lg font-bold mb-4">Progreso Últimos 7 Días</h3>
+            <div className="flex items-end justify-between h-40 gap-2">
+              {last7Days.map((date, index) => {
+                const progress = getProgress(date);
+                const dayName = ['D', 'L', 'M', 'X', 'J', 'V', 'S'][date.getDay()];
+                
+                return (
+                  <div key={index} className="flex-1 flex flex-col items-center gap-2">
+                    <div className="w-full bg-gradient-to-t from-blue-600 to-purple-600 rounded-t-lg transition-all" style={{ height: `${progress}%` }} />
+                    <div className="text-sm font-semibold">{dayName}</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="bg-white rounded-3xl shadow-xl p-6">
+            <h3 className="text-lg font-bold mb-4">Progreso por Actividad</h3>
+            <div className="space-y-3">
+              {activityStats.map(({ activity, completed }) => (
+                <div key={activity.id}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-semibold">{activity.name}</span>
+                    <span className="text-gray-600">{completed}</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-3">
+                    <div
+                      className={`${activity.color} h-3 rounded-full transition-all`}
+                      style={{ width: `${Math.min(completed * 10, 100)}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const SettingsView = () => {
+    const fileInputRef = React.useRef();
+
+    return (
+      <div className="min-h-screen bg-gray-50 pb-20">
+        <TopBar />
+        
+        <div className="p-4 space-y-6">
+          <div className="bg-white rounded-3xl shadow-xl p-6">
+            <h2 className="text-2xl font-bold">Configuración</h2>
+          </div>
+
+          <div className="bg-white rounded-3xl shadow-xl p-6">
+            <h3 className="text-lg font-bold mb-4">Situación Laboral</h3>
+            <div className="mb-4 p-4 bg-gray-50 rounded-xl">
+              <div className="font-semibold">
+                {hasWork ? '🔵 Con trabajo (8h)' : '🟢 Sin trabajo'}
+              </div>
+            </div>
+            <button
+              onClick={() => setHasWork(!hasWork)}
+              className="w-full bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-xl font-semibold transition-all"
+            >
+              Cambiar
+            </button>
+          </div>
+
+          <div className="bg-white rounded-3xl shadow-xl p-6">
+            <h3 className="text-lg font-bold mb-4">Gestionar Actividades</h3>
+            <div className="max-h-60 overflow-y-auto mb-4 space-y-2">
+              {Object.values(allActivities).map(activity => {
+                if (hasWork && activity.onlyNoWork) return null;
+                
+                return (
+                  <label
+                    key={activity.id}
+                    className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={activeActivities.includes(activity.id)}
+                      onChange={() => {
+                        setActiveActivities(prev =>
+                          prev.includes(activity.id)
+                            ? prev.filter(id => id !== activity.id)
+                            : [...prev, activity.id]
+                        );
+                      }}
+                      className="w-5 h-5"
+                    />
+                    <div className={`w-3 h-3 rounded-full ${activity.color}`} />
+                    <span className="font-semibold">{activity.name}</span>
+                  </label>
+                );
+              })}
+            </div>
+            <button
+              onClick={() => setAddItemModal(true)}
+              className="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 py-3 rounded-xl font-semibold transition-all"
+            >
+              + Agregar Ítem Personalizado
+            </button>
+          </div>
+
+          <div className="bg-white rounded-3xl shadow-xl p-6">
+            <h3 className="text-lg font-bold mb-4">☁️ Servicios en la Nube</h3>
+            
+            {!cloudConnected ? (
+              <>
+                <p className="text-gray-600 mb-4 text-sm">
+                  Conecta un servicio en la nube para respaldar tus datos automáticamente
+                </p>
+                <div className="space-y-3">
+                  <button
+                    onClick={() => connectCloudService('google')}
+                    className="w-full bg-white border-2 border-gray-300 hover:border-blue-500 py-4 rounded-xl font-semibold transition-all flex items-center justify-center gap-3"
+                  >
+                    <span className="text-2xl">📁</span>
+                    <span>Conectar Google Drive</span>
+                  </button>
+                  <button
+                    onClick={() => connectCloudService('microsoft')}
+                    className="w-full bg-white border-2 border-gray-300 hover:border-blue-500 py-4 rounded-xl font-semibold transition-all flex items-center justify-center gap-3"
+                  >
+                    <span className="text-2xl">☁️</span>
+                    <span>Conectar OneDrive</span>
+                  </button>
+                  <button
+                    onClick={() => connectCloudService('terabox')}
+                    className="w-full bg-white border-2 border-gray-300 hover:border-blue-500 py-4 rounded-xl font-semibold transition-all flex items-center justify-center gap-3"
+                  >
+                    <span className="text-2xl">📦</span>
+                    <span>Conectar TeraBox</span>
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="space-y-3">
+                <div className="p-4 bg-green-50 border-2 border-green-500 rounded-xl">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="font-bold text-green-700">
+                        ✅ Conectado a {
+                          cloudService === 'google' ? 'Google Drive' :
+                          cloudService === 'microsoft' ? 'OneDrive' :
+                          'TeraBox'
+                        }
+                      </div>
+                      <div className="text-sm text-green-600 mt-1">
+                        Tus datos están sincronizados
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <button
+                  onClick={disconnectCloudService}
+                  className="w-full bg-red-100 hover:bg-red-200 text-red-700 py-3 rounded-xl font-semibold transition-all"
+                >
+                  Desconectar
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div className="bg-white rounded-3xl shadow-xl p-6">
+            <h3 className="text-lg font-bold mb-4">💾 Backup & Restauración</h3>
+            <div className="space-y-3">
+              <button
+                onClick={downloadBackup}
+                className="w-full bg-green-500 hover:bg-green-600 text-white py-3 rounded-xl font-semibold transition-all flex items-center justify-center gap-2"
+              >
+                <span>⬇️</span>
+                <span>Descargar Backup (.json)</span>
+              </button>
+              <label className="block">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".json"
+                  onChange={restoreBackup}
+                  className="hidden"
+                />
+                <div className="w-full bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-xl font-semibold text-center cursor-pointer transition-all flex items-center justify-center gap-2">
+                  <span>⬆️</span>
+                  <span>Restaurar desde Backup</span>
+                </div>
+              </label>
+              <p className="text-sm text-gray-600 text-center">
+                💡 Guarda el archivo .json en tu servicio en la nube preferido
+              </p>
+            </div>
+          </div>
+
+          <div className="bg-red-50 border-2 border-red-500 rounded-3xl shadow-xl p-6">
+            <h3 className="text-lg font-bold text-red-700 mb-4">⚠️ Zona Peligrosa</h3>
+            <button
+              onClick={resetApp}
+              className="w-full bg-red-500 hover:bg-red-600 text-white py-3 rounded-xl font-semibold transition-all"
+            >
+              Reiniciar Configuración
+            </button>
+            <p className="text-sm text-red-600 text-center mt-3">
+              ⚠️ Esto borrará todos los datos
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // ============================================================================
+  // RENDER
+  // ============================================================================
+
+  return (
+    <div className="font-sans">
+      {currentView === 'setup' && <SetupView />}
+      {currentView === 'home' && <HomeView />}
+      {currentView === 'daily' && <DailyView />}
+      {currentView === 'weekly' && <WeeklyView />}
+      {currentView === 'deliveries' && <DeliveriesView />}
+      {currentView === 'stats' && <StatsView />}
+      {currentView === 'settings' && <SettingsView />}
+      
+      <SideMenu />
+      <TechniqueModal />
+      <AddItemModal />
+    </div>
+  );
+}
