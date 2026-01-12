@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -9,6 +9,11 @@
     <meta name="theme-color" content="#2563eb">
     <link rel="manifest" href="./manifest.json">
     <title>FP DAM Gestor - Completo</title>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { 
@@ -151,7 +156,36 @@
     
     <script>
         console.log('🚀 FP DAM Gestor - Versión JavaScript Vanilla Completa');
-        console.log('💾 Almacenamiento: localStorage permanente');
+        console.log('💾 Almacenamiento: Firebase + localStorage permanente');
+        
+        // =================================================================
+        // FIREBASE CONFIGURATION
+        // =================================================================
+        
+        const firebaseConfig = {
+  		apiKey: "AIzaSyApiLQZnZJua-ugHZ7LBs_-2jXXFpmLcDM",
+  		authDomain: "fp-dam-gestor.firebaseapp.com",
+  		projectId: "fp-dam-gestor",
+  		storageBucket: "fp-dam-gestor.firebasestorage.app",
+  		messagingSenderId: "563908433748",
+  		appId: "1:563908433748:web:ba76709aec9363eef6dac1"
+        };
+        
+        // Initialize Firebase
+        let db = null;
+        let firebaseInitialized = false;
+        
+        try {
+            if (typeof firebase !== 'undefined') {
+                firebase.initializeApp(firebaseConfig);
+                db = firebase.firestore();
+                firebaseInitialized = true;
+                console.log('✅ Firebase inicializado');
+            }
+        } catch (error) {
+            console.warn('⚠️ Firebase no disponible, usando solo localStorage:', error);
+            firebaseInitialized = false;
+        }
         
         // =================================================================
         // DATOS BASE
@@ -191,6 +225,9 @@
             trabajo: { id: 'trabajo', name: 'Búsqueda Trabajo', type: 'personal', color: 'badge-blue',
                        scheduleNoWork: { start: '18:30', end: '20:00', hours: '1.5h' },
                        scheduleWithWork: { start: '', end: '', hours: '' }, priority: 2, onlyNoWork: true },
+            tiempolibre: { id: 'tiempolibre', name: 'Tiempo Libre', type: 'personal', color: 'badge-blue',
+                           scheduleNoWork: { start: '', end: '', hours: '' },
+                           scheduleWithWork: { start: '', end: '', hours: '' }, priority: 3, onlyNoWork: true },
             revision: { id: 'revision', name: 'Revisión del Día', type: 'personal', color: 'badge-blue',
                         scheduleNoWork: { start: '20:00', end: '21:00', hours: '1h' },
                         scheduleWithWork: { start: '', end: '', hours: '' }, priority: 2, onlyNoWork: true },
@@ -240,9 +277,24 @@
                     completedTasks: STATE.completedTasks,
                     deliveries: STATE.deliveries,
                     lastSaved: new Date().toISOString(),
-                    version: '3.0-vanilla'
+                    version: '4.0-firebase'
                 };
+                
+                // Guardar en localStorage (backup local)
                 localStorage.setItem('fpDamApp', JSON.stringify(dataToSave));
+                
+                // Guardar en Firebase (sincronización)
+                if (firebaseInitialized && db) {
+                    const userId = getOrCreateUserId();
+                    db.collection('users').doc(userId).set(dataToSave, { merge: true })
+                        .then(() => {
+                            console.log('☁️ Sincronizado con Firebase');
+                        })
+                        .catch((error) => {
+                            console.warn('⚠️ Error al sincronizar Firebase:', error);
+                        });
+                }
+                
                 showSaveIndicator();
                 console.log('💾 Datos guardados:', new Date().toLocaleTimeString());
                 return true;
@@ -253,8 +305,40 @@
             }
         }
         
-        function loadData() {
+        async function loadData() {
             try {
+                // Intentar cargar desde Firebase primero
+                if (firebaseInitialized && db) {
+                    const userId = getOrCreateUserId();
+                    try {
+                        const doc = await db.collection('users').doc(userId).get();
+                        if (doc.exists) {
+                            const data = doc.data();
+                            STATE.hasWork = data.hasWork;
+                            STATE.allActivities = data.allActivities || {...BASE_ACTIVITIES};
+                            STATE.activeActivities = data.activeActivities || [];
+                            STATE.completedTasks = data.completedTasks || {};
+                            STATE.deliveries = (data.deliveries || []).map(d => ({
+                                ...d,
+                                date: new Date(d.date),
+                                created: new Date(d.created || Date.now())
+                            }));
+                            
+                            // Guardar en localStorage como backup
+                            localStorage.setItem('fpDamApp', JSON.stringify(data));
+                            
+                            if (STATE.hasWork !== null) {
+                                STATE.currentView = 'home';
+                            }
+                            console.log('✅ Datos cargados desde Firebase');
+                            return true;
+                        }
+                    } catch (error) {
+                        console.warn('⚠️ Error al cargar desde Firebase, usando localStorage:', error);
+                    }
+                }
+                
+                // Fallback a localStorage
                 const saved = localStorage.getItem('fpDamApp');
                 if (saved) {
                     const data = JSON.parse(saved);
@@ -271,7 +355,7 @@
                     if (STATE.hasWork !== null) {
                         STATE.currentView = 'home';
                     }
-                    console.log('✅ Datos cargados - MODO PERMANENTE');
+                    console.log('✅ Datos cargados desde localStorage');
                     return true;
                 }
                 console.log('ℹ️ No hay datos guardados');
@@ -280,6 +364,16 @@
                 console.error('❌ Error al cargar:', e);
                 return false;
             }
+        }
+        
+        function getOrCreateUserId() {
+            let userId = localStorage.getItem('fpDamUserId');
+            if (!userId) {
+                userId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                localStorage.setItem('fpDamUserId', userId);
+                console.log('🆔 Nuevo ID de usuario creado:', userId);
+            }
+            return userId;
         }
         
         function showSaveIndicator() {
@@ -485,12 +579,14 @@
             console.log('🔄 Redistribuyendo horarios...');
             const schedule = STATE.hasWork ? 'scheduleWithWork' : 'scheduleNoWork';
             
-            // Restaurar horarios base
+            // Restaurar horarios base y limpiar boosted
             Object.keys(BASE_ACTIVITIES).forEach(key => {
                 const baseAct = BASE_ACTIVITIES[key];
                 const stateAct = STATE.allActivities[key];
                 if (stateAct && baseAct[schedule]) {
                     stateAct[schedule] = { ...baseAct[schedule] };
+                    stateAct.boosted = false;
+                    stateAct.boostedMultiplier = null;
                 }
             });
             
@@ -529,9 +625,9 @@
             
             console.log(`⏰ Total tiempo extra necesario: ${totalExtraNeeded.toFixed(2)}h`);
             
-            // PASO 1: Reducir fp-critical y fp-important a mínimo 45min
+            // PASO 1: Reducir fp-critical y fp-important a mínimo 1h
             let timeLiberated = 0;
-            const minMinutes = 45;
+            const minMinutes = 60; // 1 hora mínimo
             
             STATE.activeActivities.forEach(actId => {
                 const activity = STATE.allActivities[actId];
@@ -555,7 +651,7 @@
                     const liberated = currentMinutes - minMinutes;
                     timeLiberated += liberated;
                     sched.hours = `${(minMinutes / 60).toFixed(2)}h`;
-                    console.log(`⬇️ ${activity.name}: ${currentHours}h → 0.75h (libera ${(liberated/60).toFixed(2)}h)`);
+                    console.log(`⬇️ ${activity.name}: ${currentHours}h → 1h (libera ${(liberated/60).toFixed(2)}h)`);
                 }
             });
             
@@ -648,6 +744,10 @@
                 const newHours = baseHours * multiplier;
                 
                 sched.hours = `${newHours.toFixed(2)}h`;
+                activity.boosted = true;
+                activity.boostedMultiplier = multiplier;
+                activity.boostedBaseHours = baseHours;
+                
                 console.log(`🔥 ${activity.name}: ${baseHours}h → ${newHours}h (x${multiplier})`);
             });
             
@@ -666,8 +766,17 @@
                 const hours = parseFloat(sched.hours);
                 if (isNaN(hours) || hours === 0) return;
                 
-                // Bloques intocables (Cena, Familia, Rutina) no se reorganizan
-                if (actId === 'cena' || actId === 'familia' || actId === 'nocturna') return;
+                // Bloques intocables mantienen su horario fijo
+                if (activity.fixed || actId === 'cena' || actId === 'familia' || actId === 'nocturna') {
+                    // Mantener horario original de BASE_ACTIVITIES
+                    const baseSched = BASE_ACTIVITIES[actId][schedule];
+                    if (baseSched) {
+                        sched.start = baseSched.start;
+                        sched.end = baseSched.end;
+                        sched.hours = baseSched.hours;
+                    }
+                    return;
+                }
                 
                 activitiesToSchedule.push({
                     id: actId,
@@ -683,23 +792,27 @@
             
             // Calcular horarios
             let currentMinutes = 8 * 60; // 08:00
-            const lunchStart = 14 * 60; // 14:00
-            const lunchDuration = 2 * 60; // 2h
+            const almuerzoStart = parseFloat(BASE_ACTIVITIES.almuerzo[schedule].start.split(':')[0]) * 60 + 
+                                 parseFloat(BASE_ACTIVITIES.almuerzo[schedule].start.split(':')[1]);
+            const almuerzoEnd = parseFloat(BASE_ACTIVITIES.almuerzo[schedule].end.split(':')[0]) * 60 + 
+                               parseFloat(BASE_ACTIVITIES.almuerzo[schedule].end.split(':')[1]);
             const endDay = 21 * 60; // 21:00 (límite)
             
             activitiesToSchedule.forEach(item => {
-                // Almuerzo fijo
+                // Almuerzo mantiene horario fijo
                 if (item.id === 'almuerzo') {
-                    item.schedule.start = '14:00';
-                    item.schedule.end = '16:00';
+                    const baseSched = BASE_ACTIVITIES.almuerzo[schedule];
+                    item.schedule.start = baseSched.start;
+                    item.schedule.end = baseSched.end;
+                    item.schedule.hours = baseSched.hours;
                     return;
                 }
                 
                 const durationMinutes = Math.round(item.hours * 60);
                 
                 // Si choca con almuerzo, saltar
-                if (currentMinutes < lunchStart && currentMinutes + durationMinutes > lunchStart) {
-                    currentMinutes = lunchStart + lunchDuration;
+                if (currentMinutes < almuerzoStart && currentMinutes + durationMinutes > almuerzoStart) {
+                    currentMinutes = almuerzoEnd;
                 }
                 
                 // Si pasa del límite, no agregar
@@ -799,9 +912,9 @@
                         <div class="header">
                             <div style="font-size: 60px; margin-bottom: 15px;">📚</div>
                             <h1>FP DAM Gestor</h1>
-                            <p style="margin-top: 10px;">Gestión de estudio con almacenamiento permanente</p>
+                            <p style="margin-top: 10px;">Gestión de estudio con sincronización automática</p>
                             <div class="storage-badge">
-                                💾 Datos guardados automáticamente
+                                ☁️ Sincronizado en todos tus dispositivos
                             </div>
                         </div>
                         
@@ -976,7 +1089,7 @@
                                 <div class="activity-time">⏰ ${sched.start} - ${sched.end}</div>
                             </div>
                             <span class="badge ${activity.color}">${sched.hours}</span>
-                            ${activity.boosted ? `<span class="badge badge-orange">🔥 ${activity.boostedMultiplier}x</span>` : ''}
+                            ${activity.boosted ? `<span class="badge badge-orange">${activity.boostedBaseHours}h → ${parseFloat(sched.hours).toFixed(1)}h 🔥</span>` : ''}
                         </div>
                     `;
                 });
@@ -1404,11 +1517,11 @@
         // INICIALIZACIÓN
         // =================================================================
         
-        window.addEventListener('load', () => {
+        window.addEventListener('load', async () => {
             console.log('🚀 Iniciando FP DAM Gestor...');
             
-            // Cargar datos guardados
-            loadData();
+            // Cargar datos guardados (async)
+            await loadData();
             
             // Ocultar pantalla de carga
             setTimeout(() => {
