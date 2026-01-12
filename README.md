@@ -3,7 +3,7 @@
 Progressive Web App (PWA) para gestionar el horario de estudio de **Formación Profesional DAM** (Desarrollo de Aplicaciones Multiplataforma) con **sistema inteligente de redistribución automática** cuando hay entregas urgentes.
 
 ![Estado](https://img.shields.io/badge/estado-activo-success)
-![Versión](https://img.shields.io/badge/versión-4.1-blue)
+![Versión](https://img.shields.io/badge/versión-1.0-blue)
 ![PWA](https://img.shields.io/badge/PWA-ready-purple)
 
 ---
@@ -220,7 +220,7 @@ Este es un proyecto personal educativo, pero siéntete libre de:
 
 ---
 
-## 🎯 Changelog v4.1
+## 🎯 Changelog v1.0
 
 ### **Mejoras:**
 - ✅ Redistribución optimizada con mínimos correctos (1h, 45min, 45min, 15min)
@@ -236,4 +236,4 @@ Este es un proyecto personal educativo, pero siéntete libre de:
 
 **Hecho con ❤️ para estudiantes de FP DAM**
 
-*Versión 4.1 - Enero 2026*
+*Versión 1.0 - Enero 2026*

@@ -1,4 +1,4 @@
-# 📋 RESUMEN COMPLETO TÉCNICO - FP DAM GESTOR PWA v4.1
+# 📋 RESUMEN COMPLETO TÉCNICO - FP DAM GESTOR PWA v1.0
 
 ## 🎯 PROPÓSITO
 
@@ -18,7 +18,7 @@ Este documento contiene **TODA la información técnica** para crear la aplicaci
 - **Deploy:** GitHub Pages
 
 ### **Versión:**
-- **v4.1** - Redistribución Optimizada + Firebase
+- **v1.0** - Redistribución Optimizada + Firebase
 - **Fecha:** 12 Enero 2026
 - **Archivos:** `index.html` (~1620 líneas), `manifest.json`, `service-worker.js`
 
@@ -334,7 +334,7 @@ try {
 ### **saveData():**
 ```javascript
 function saveData() {
-    const dataToSave = { hasWork, allActivities, activeActivities, completedTasks, deliveries, lastSaved, version: '4.1-final' };
+    const dataToSave = { hasWork, allActivities, activeActivities, completedTasks, deliveries, lastSaved, version: '1.0-final' };
     
     localStorage.setItem('fpDamApp', JSON.stringify(dataToSave));
     
@@ -472,4 +472,4 @@ self.addEventListener('fetch', event => {
 
 ---
 
-**FIN - v4.1 Final - 12 Enero 2026**
+**FIN - v1.0 Final - 12 Enero 2026**

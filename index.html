@@ -576,6 +576,297 @@
             console.log('🔄 Redistribuyendo horarios...');
             const schedule = STATE.hasWork ? 'scheduleWithWork' : 'scheduleNoWork';
             
+            // PASO 0: Restaurar TODO desde BASE_ACTIVITIES
+            Object.keys(BASE_ACTIVITIES).forEach(key => {
+                const baseAct = BASE_ACTIVITIES[key];
+                const stateAct = STATE.allActivities[key];
+                if (stateAct && baseAct[schedule]) {
+                    stateAct[schedule] = JSON.parse(JSON.stringify(baseAct[schedule]));
+                    stateAct.boosted = false;
+                    stateAct.boostedMultiplier = null;
+                    stateAct.boostedBaseHours = null;
+                }
+            });
+            
+            // Detectar entregas urgentes
+            const urgentDeliveries = STATE.deliveries.filter(d => {
+                const daysUntil = getDaysUntilDelivery(d.date);
+                return daysUntil >= 0 && daysUntil <= 3;
+            });
+            
+            if (urgentDeliveries.length === 0) {
+                console.log('✅ Sin entregas urgentes - horario normal');
+                return;
+            }
+            
+            console.log(`🔥 ${urgentDeliveries.length} entrega(s) urgente(s) detectada(s)`);
+            
+            // Calcular tiempo extra necesario
+            let totalExtraNeeded = 0;
+            const boostedActivities = [];
+            
+            urgentDeliveries.forEach(delivery => {
+                const activity = STATE.allActivities[delivery.subject];
+                if (!activity) return;
+                const sched = activity[schedule];
+                if (!sched || sched.hours === 'Var') return;
+                
+                const baseHours = parseFloat(BASE_ACTIVITIES[delivery.subject][schedule].hours);
+                if (isNaN(baseHours)) return;
+                
+                const daysUntil = getDaysUntilDelivery(delivery.date);
+                const multiplier = daysUntil === 0 ? 3 : daysUntil === 1 ? 2.5 : 2;
+                const neededHours = baseHours * multiplier;
+                const extraNeeded = neededHours - baseHours;
+                totalExtraNeeded += extraNeeded;
+                
+                boostedActivities.push({
+                    id: delivery.subject,
+                    activity: activity,
+                    baseHours: baseHours,
+                    newHours: neededHours,
+                    multiplier: multiplier
+                });
+                
+                console.log(`📚 ${activity.name}: ${baseHours}h → ${neededHours.toFixed(2)}h (x${multiplier})`);
+            });
+            
+            console.log(`⏰ Total tiempo extra necesario: ${totalExtraNeeded.toFixed(2)}h`);
+            
+            // PASO 1: Reducir fp-critical (min 1h) y fp-important (min 45min)
+            let timeLiberated = 0;
+            
+            STATE.activeActivities.forEach(actId => {
+                const activity = STATE.allActivities[actId];
+                if (!activity) return;
+                
+                // Saltar si tiene entrega urgente
+                if (urgentDeliveries.some(d => d.subject === actId)) return;
+                
+                const sched = activity[schedule];
+                if (!sched || sched.hours === 'Var' || sched.hours === '') return;
+                
+                const currentHours = parseFloat(sched.hours);
+                if (isNaN(currentHours)) return;
+                
+                let minHours = 0;
+                if (activity.type === 'fp-critical') minHours = 1;
+                else if (activity.type === 'fp-important') minHours = 0.75; // 45min
+                
+                if (minHours > 0 && currentHours > minHours) {
+                    const liberated = currentHours - minHours;
+                    timeLiberated += liberated;
+                    sched.hours = `${minHours.toFixed(2)}h`;
+                    console.log(`⬇️ ${activity.name}: ${currentHours.toFixed(2)}h → ${minHours.toFixed(2)}h (libera ${liberated.toFixed(2)}h)`);
+                }
+            });
+            
+            console.log(`📦 PASO 1 liberó: ${timeLiberated.toFixed(2)}h`);
+            
+            // PASO 2: Eliminar Revisión
+            if (STATE.allActivities.revision) {
+                const revSched = STATE.allActivities.revision[schedule];
+                if (revSched && revSched.hours) {
+                    const hours = parseFloat(revSched.hours);
+                    if (!isNaN(hours) && hours > 0) {
+                        timeLiberated += hours;
+                        revSched.hours = '0h';
+                        revSched.start = '';
+                        revSched.end = '';
+                        console.log(`❌ Eliminado: Revisión (libera ${hours.toFixed(2)}h)`);
+                    }
+                }
+            }
+            
+            console.log(`📦 PASO 2 total liberado: ${timeLiberated.toFixed(2)}h`);
+            
+            // PASO 3: Si falta tiempo, reducir fp-light (min 45min=0.75h) y learning (min 15min=0.25h)
+            if (timeLiberated < totalExtraNeeded) {
+                console.log(`⚠️ Aún faltan ${(totalExtraNeeded - timeLiberated).toFixed(2)}h - aplicando PASO 3`);
+                
+                const reducibles = [];
+                STATE.activeActivities.forEach(actId => {
+                    const activity = STATE.allActivities[actId];
+                    if (!activity) return;
+                    if (activity.type === 'fp-light' || activity.type === 'learning') {
+                        const sched = activity[schedule];
+                        if (sched && sched.hours && sched.hours !== 'Var' && sched.hours !== '0h') {
+                            const hours = parseFloat(sched.hours);
+                            if (!isNaN(hours) && hours > 0) {
+                                reducibles.push({ 
+                                    id: actId, 
+                                    activity: activity, 
+                                    hours: hours, 
+                                    sched: sched 
+                                });
+                            }
+                        }
+                    }
+                });
+                
+                if (reducibles.length > 0) {
+                    const dayOfWeek = STATE.currentDate.getDay();
+                    const startIndex = dayOfWeek % reducibles.length;
+                    
+                    for (let i = 0; i < reducibles.length && timeLiberated < totalExtraNeeded; i++) {
+                        const idx = (startIndex + i) % reducibles.length;
+                        const item = reducibles[idx];
+                        
+                        const minHours = item.activity.type === 'fp-light' ? 0.75 : 0.25;
+                        
+                        if (item.hours > minHours) {
+                            const reduction = item.hours - minHours;
+                            timeLiberated += reduction;
+                            item.sched.hours = `${minHours.toFixed(2)}h`;
+                            console.log(`⬇️ ${item.activity.name}: ${item.hours.toFixed(2)}h → ${minHours.toFixed(2)}h (libera ${reduction.toFixed(2)}h)`);
+                        } else if (timeLiberated < totalExtraNeeded) {
+                            timeLiberated += item.hours;
+                            item.sched.hours = '0h';
+                            item.sched.start = '';
+                            item.sched.end = '';
+                            console.log(`❌ Eliminado: ${item.activity.name} (libera ${item.hours.toFixed(2)}h)`);
+                        }
+                    }
+                }
+            }
+            
+            console.log(`✅ Total tiempo liberado: ${timeLiberated.toFixed(2)}h`);
+            
+            // PASO 4: Aplicar multiplicadores
+            boostedActivities.forEach(item => {
+                const sched = item.activity[schedule];
+                sched.hours = `${item.newHours.toFixed(2)}h`;
+                item.activity.boosted = true;
+                item.activity.boostedMultiplier = item.multiplier;
+                item.activity.boostedBaseHours = item.baseHours;
+                console.log(`🔥 ${item.activity.name}: ${item.baseHours.toFixed(2)}h → ${item.newHours.toFixed(2)}h (x${item.multiplier})`);
+            });
+            
+            // PASO 5: Recalcular horarios start/end
+            console.log('🕐 Recalculando horarios...');
+            
+            // Recolectar actividades a programar (excepto fixed)
+            const toSchedule = [];
+            STATE.activeActivities.forEach(actId => {
+                const activity = STATE.allActivities[actId];
+                if (!activity) return;
+                if (STATE.hasWork && activity.onlyNoWork) return;
+                
+                const sched = activity[schedule];
+                if (!sched || !sched.hours || sched.hours === '0h' || sched.hours === 'Var' || sched.hours === '') return;
+                
+                const hours = parseFloat(sched.hours);
+                if (isNaN(hours) || hours === 0) return;
+                
+                // Fixed mantienen horario original
+                if (activity.fixed || actId === 'cena' || actId === 'familia' || actId === 'nocturna' || actId === 'almuerzo') {
+                    const baseSched = BASE_ACTIVITIES[actId][schedule];
+                    if (baseSched) {
+                        sched.start = baseSched.start;
+                        sched.end = baseSched.end;
+                        sched.hours = baseSched.hours;
+                    }
+                    return;
+                }
+                
+                toSchedule.push({
+                    id: actId,
+                    activity: activity,
+                    hours: hours,
+                    priority: activity.priority || 3,
+                    sched: sched,
+                    boosted: activity.boosted || false
+                });
+            });
+            
+            // Dividir actividades boosted >3h en 2 bloques
+            const finalSchedule = [];
+            toSchedule.forEach(item => {
+                if (item.boosted && item.hours > 3) {
+                    const half = item.hours / 2;
+                    finalSchedule.push({
+                        ...item,
+                        hours: half,
+                        priority: item.priority,
+                        isPart1: true
+                    });
+                    finalSchedule.push({
+                        ...item,
+                        hours: half,
+                        priority: item.priority + 0.5,
+                        isPart2: true
+                    });
+                } else {
+                    finalSchedule.push(item);
+                }
+            });
+            
+            // Ordenar por prioridad
+            finalSchedule.sort((a, b) => a.priority - b.priority);
+            
+            // Programar secuencialmente
+            const startTime = 8 * 60; // 08:00 en minutos
+            const endTime = 21 * 60; // 21:00 en minutos
+            const almuerzoStart = 14 * 60; // 14:00
+            const almuerzoEnd = almuerzoStart + (parseFloat(BASE_ACTIVITIES.almuerzo[schedule].hours) * 60);
+            
+            let currentTime = startTime;
+            
+            finalSchedule.forEach(item => {
+                const durationMinutes = Math.round(item.hours * 60);
+                
+                // Si choca con almuerzo, saltar después
+                if (currentTime < almuerzoEnd && currentTime + durationMinutes > almuerzoStart) {
+                    if (currentTime < almuerzoStart) {
+                        currentTime = almuerzoEnd;
+                    }
+                }
+                
+                // Verificar que no pase del límite
+                if (currentTime + durationMinutes > endTime) {
+                    console.log(`⚠️ ${item.activity.name} no cabe (necesita ${item.hours.toFixed(2)}h)`);
+                    item.sched.hours = '0h';
+                    item.sched.start = '';
+                    item.sched.end = '';
+                    return;
+                }
+                
+                // Calcular horarios
+                const startH = Math.floor(currentTime / 60);
+                const startM = currentTime % 60;
+                const endTimeCalc = currentTime + durationMinutes;
+                const endH = Math.floor(endTimeCalc / 60);
+                const endM = endTimeCalc % 60;
+                
+                item.sched.start = `${String(startH).padStart(2, '0')}:${String(startM).padStart(2, '0')}`;
+                item.sched.end = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
+                
+                const partLabel = item.isPart1 ? ' (1/2)' : item.isPart2 ? ' (2/2)' : '';
+                console.log(`✓ ${item.activity.name}${partLabel}: ${item.sched.start}-${item.sched.end} (${item.hours.toFixed(2)}h)`);
+                
+                // Avanzar SIN huecos
+                currentTime = endTimeCalc;
+            });
+            
+            // Programar almuerzo
+            if (STATE.allActivities.almuerzo) {
+                const almSched = STATE.allActivities.almuerzo[schedule];
+                if (almSched) {
+                    const almH = Math.floor(almuerzoStart / 60);
+                    const almM = almuerzoStart % 60;
+                    const almEndH = Math.floor(almuerzoEnd / 60);
+                    const almEndM = almuerzoEnd % 60;
+                    
+                    almSched.start = `${String(almH).padStart(2, '0')}:${String(almM).padStart(2, '0')}`;
+                    almSched.end = `${String(almEndH).padStart(2, '0')}:${String(almEndM).padStart(2, '0')}`;
+                    
+                    console.log(`✓ Almuerzo: ${almSched.start}-${almSched.end}`);
+                }
+            }
+            
+            console.log('✅ Redistribución completada');
+        }
+            
             // Restaurar horarios base y limpiar boosted
             Object.keys(BASE_ACTIVITIES).forEach(key => {
                 const baseAct = BASE_ACTIVITIES[key];
@@ -885,25 +1176,6 @@
                 // Avanzar SIN huecos
                 currentMinutes = endMinutes;
             });
-            
-            // Asignar horario al almuerzo
-            const almuerzoActivity = STATE.allActivities['almuerzo'];
-            if (almuerzoActivity) {
-                const almuerzoSched = almuerzoActivity[schedule];
-                if (almuerzoSched) {
-                    // Intentar mantener almuerzo ideal 14:00-15:15, pero mover si necesario
-                    const almuerzoStartH = Math.floor(almuerzoStart / 60);
-                    const almuerzoStartM = almuerzoStart % 60;
-                    const almuerzoEndH = Math.floor(almuerzoEnd / 60);
-                    const almuerzoEndM = almuerzoEnd % 60;
-                    
-                    almuerzoSched.start = `${String(almuerzoStartH).padStart(2, '0')}:${String(almuerzoStartM).padStart(2, '0')}`;
-                    almuerzoSched.end = `${String(almuerzoEndH).padStart(2, '0')}:${String(almuerzoEndM).padStart(2, '0')}`;
-                    almuerzoSched.hours = `${almuerzoHours.toFixed(2)}h`;
-                    
-                    console.log(`✓ Almuerzo: ${almuerzoSched.start}-${almuerzoSched.end} (${almuerzoSched.hours})`);
-                }
-            }
             
             console.log('✅ Redistribución completada');
         }
