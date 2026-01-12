@@ -3,7 +3,7 @@
 Progressive Web App (PWA) para gestionar el horario de estudio de **Formación Profesional DAM** (Desarrollo de Aplicaciones Multiplataforma) con **sistema inteligente de redistribución automática** cuando hay entregas urgentes.
 
 ![Estado](https://img.shields.io/badge/estado-activo-success)
-![Versión](https://img.shields.io/badge/versión-4.0-blue)
+![Versión](https://img.shields.io/badge/versión-4.1-blue)
 ![PWA](https://img.shields.io/badge/PWA-ready-purple)
 
 ---
@@ -15,11 +15,12 @@ Progressive Web App (PWA) para gestionar el horario de estudio de **Formación P
 - Dos modos: **Con trabajo** (8h) o **Sin trabajo**
 - Redistribución automática con entregas urgentes (≤3 días)
 - Multiplicadores de tiempo: **x3 (HOY)**, **x2.5 (MAÑANA)**, **x2 (2-3 días)**
+- Sin huecos innecesarios entre materias
 
 ### ☁️ **Sincronización Multiplataforma**
 - Sincronización automática con **Firebase**
 - Backup local con **localStorage** (fallback)
-- Accede desde móvil, tablet o PC sin necesidad de cargar backups
+- Accede desde móvil, tablet o PC sin cargar backups
 - Tus datos siempre disponibles en todos tus dispositivos
 
 ### 📱 **PWA Instalable**
@@ -63,7 +64,7 @@ Progressive Web App (PWA) para gestionar el horario de estudio de **Formación P
 
 ## 🔧 Configuración de Firebase (Opcional)
 
-Para habilitar la sincronización multiplataforma, necesitas tu propia cuenta de Firebase:
+Para habilitar la sincronización multiplataforma:
 
 1. Ve a [Firebase Console](https://console.firebase.google.com/)
 2. Crea un nuevo proyecto
@@ -82,20 +83,22 @@ const firebaseConfig = {
 };
 ```
 
-### **Reglas de Seguridad de Firestore:**
+### **Reglas de Firestore:**
 
 ```javascript
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     match /users/{userId} {
-      allow read, write: if true; // Cambia esto según tus necesidades de seguridad
+      allow read, write: if true;
     }
   }
 }
 ```
 
-> **⚠️ IMPORTANTE:** Estas reglas permiten acceso público. En producción, implementa autenticación adecuada.
+> **⚠️ IMPORTANTE:** Para producción, implementa Firebase Authentication.
+
+Ver guía completa en `FIREBASE-SETUP.md`.
 
 ---
 
@@ -104,6 +107,7 @@ service cloud.firestore {
 | Funcionalidad | Descripción |
 |--------------|-------------|
 | **Redistribución Inteligente** | Ajusta horarios automáticamente con entregas urgentes |
+| **Sin Huecos** | Horarios secuenciales sin descansos innecesarios |
 | **Alarmas Automáticas** | Notificaciones push al inicio de cada actividad |
 | **Progreso Diario** | % de tareas completadas del día |
 | **Domingo OFF** | Sin actividades programadas |
@@ -117,18 +121,18 @@ service cloud.firestore {
 ## 🎓 Estructura de Actividades
 
 ### **Materias FP (7)**
-- **Críticas:** Programación, Base de Datos
-- **Importantes:** Sistemas Informáticos, Entornos Desarrollo
-- **Leves:** Lenguajes Marcas, Digitalización, Itinerario IPO
+- **Críticas (Mínimo 1h):** Programación, Base de Datos
+- **Importantes (Mínimo 45min):** Sistemas Informáticos, Entornos Desarrollo
+- **Leves (Mínimo 45min):** Lenguajes Marcas, Digitalización, Itinerario IPO
 
-### **Capacitaciones (3)**
+### **Capacitaciones (3) - Mínimo 15min**
 - Inglés (L, M, J)
 - Estudiar IAs (L, X, V)
 - Estudiar SEO (M, J, V)
 
 ### **Vida Personal**
-- Búsqueda Trabajo, Tiempo Libre, Revisión del Día
-- Descanso, Almuerzo
+- Búsqueda Trabajo, Revisión del Día
+- Almuerzo (movible 14:00-15:15 ideal)
 - **Intocables:** Cena (21:00), Familia (22:00), Rutina Nocturna (23:00)
 
 ---
@@ -143,15 +147,18 @@ MAÑANA (1 día):    x2.5 (+150% tiempo)
 ```
 
 ### **Orden de reducción:**
-1. **Reducir materias críticas/importantes** (mínimo 1h por materia)
-2. **Eliminar Descanso y Revisión**
-3. **Reducir/Eliminar materias leves y capacitaciones** (rotando)
-4. **Recalcular horarios reales** (start/end)
+1. **Reducir materias críticas/importantes** a mínimos (1h / 45min)
+2. **Eliminar Revisión del Día**
+3. **Reducir/Eliminar materias leves y capacitaciones** a mínimos (45min / 15min), rotando eliminación
+4. **Dividir materias muy largas** (>3h) en 2 bloques (mañana + tarde)
+5. **Recalcular horarios 08:00-21:00** sin huecos
 
-### **Bloques intocables (NUNCA se mueven):**
+### **Bloques intocables:**
 - Cena: 21:00-22:00
 - Familia: 22:00-23:00
 - Rutina Nocturna: 23:00-00:00
+
+**NUNCA se mueven ni reducen.**
 
 ---
 
@@ -162,7 +169,7 @@ MAÑANA (1 día):    x2.5 (+150% tiempo)
 - **Firebase Firestore** para sincronización
 - **localStorage** para backup local
 - **PWA** con Service Worker
-- **Archivo único:** `index.html` (~1550 líneas)
+- **Archivo único:** `index.html` (~1620 líneas)
 
 ---
 
@@ -181,7 +188,7 @@ MAÑANA (1 día):    x2.5 (+150% tiempo)
 
 ## 🔒 Privacidad y Datos
 
-- **Tus datos se guardan localmente** en tu navegador (localStorage)
+- **Datos guardados localmente** en tu navegador (localStorage)
 - **Sincronización opcional** con Firebase (requiere configuración)
 - **Sin tracking**, sin analytics, sin cookies de terceros
 - **Open source** - puedes revisar todo el código
@@ -213,18 +220,20 @@ Este es un proyecto personal educativo, pero siéntete libre de:
 
 ---
 
-## 🎯 Roadmap
+## 🎯 Changelog v4.1
 
-- [x] Sistema de redistribución inteligente
-- [x] Sincronización con Firebase
-- [x] PWA con Service Worker
-- [x] Notificaciones push
-- [ ] Autenticación de usuarios
-- [ ] Compartir horarios con compañeros
-- [ ] Estadísticas avanzadas
+### **Mejoras:**
+- ✅ Redistribución optimizada con mínimos correctos (1h, 45min, 45min, 15min)
+- ✅ Horarios secuenciales sin huecos innecesarios
+- ✅ División automática de materias muy largas (>3h) en 2 bloques
+- ✅ Rotación inteligente de eliminación de materias leves/capacitaciones
+- ✅ Badge visual mejorado del booster (muestra "2h → 4h 🔥")
+- ✅ Integración Firebase para sincronización multiplataforma
+- ✅ Almuerzo movible con horario ideal 14:00-15:15
+- ✅ Eliminación de descansos innecesarios (usuario usa Pomodoro)
 
 ---
 
 **Hecho con ❤️ para estudiantes de FP DAM**
 
-*Versión 4.0 - Enero 2026*
+*Versión 4.1 - Enero 2026*
