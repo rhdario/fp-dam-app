@@ -9,11 +9,6 @@
     <meta name="theme-color" content="#2563eb">
     <link rel="manifest" href="./manifest.json">
     <title>FP DAM Gestor - Completo</title>
-    
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-    
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { 
@@ -156,36 +151,7 @@
     
     <script>
         console.log('🚀 FP DAM Gestor - Versión JavaScript Vanilla Completa');
-        console.log('💾 Almacenamiento: Firebase + localStorage permanente');
-        
-        // =================================================================
-        // FIREBASE CONFIGURATION
-        // =================================================================
-        
-        const firebaseConfig = {
-            apiKey: "AIzaSyDemoKey123456789",
-            authDomain: "fp-dam-gestor.firebaseapp.com",
-            projectId: "fp-dam-gestor",
-            storageBucket: "fp-dam-gestor.appspot.com",
-            messagingSenderId: "123456789",
-            appId: "1:123456789:web:abcdef123456"
-        };
-        
-        // Initialize Firebase
-        let db = null;
-        let firebaseInitialized = false;
-        
-        try {
-            if (typeof firebase !== 'undefined') {
-                firebase.initializeApp(firebaseConfig);
-                db = firebase.firestore();
-                firebaseInitialized = true;
-                console.log('✅ Firebase inicializado');
-            }
-        } catch (error) {
-            console.warn('⚠️ Firebase no disponible, usando solo localStorage:', error);
-            firebaseInitialized = false;
-        }
+        console.log('💾 Almacenamiento: localStorage permanente');
         
         // =================================================================
         // DATOS BASE
@@ -240,6 +206,9 @@
             nocturna: { id: 'nocturna', name: 'Rutina Nocturna', type: 'personal', color: 'badge-blue',
                         scheduleNoWork: { start: '23:00', end: '00:00', hours: '1h' },
                         scheduleWithWork: { start: '23:00', end: '00:00', hours: '1h' }, priority: 5, fixed: true },
+            descanso1: { id: 'descanso1', name: 'Descanso', type: 'break', color: 'badge-yellow',
+                         scheduleNoWork: { start: '10:00', end: '10:15', hours: '0.25h' },
+                         scheduleWithWork: { start: '', end: '', hours: '' }, priority: 3, onlyNoWork: true },
             almuerzo: { id: 'almuerzo', name: 'Almuerzo + Descanso', type: 'break', color: 'badge-orange',
                         scheduleNoWork: { start: '13:15', end: '15:00', hours: '1.75h' },
                         scheduleWithWork: { start: '13:00', end: '14:00', hours: '1h' }, priority: 5, fixed: true }
@@ -274,24 +243,9 @@
                     completedTasks: STATE.completedTasks,
                     deliveries: STATE.deliveries,
                     lastSaved: new Date().toISOString(),
-                    version: '4.0-firebase'
+                    version: '3.0-vanilla'
                 };
-                
-                // Guardar en localStorage (backup local)
                 localStorage.setItem('fpDamApp', JSON.stringify(dataToSave));
-                
-                // Guardar en Firebase (sincronización)
-                if (firebaseInitialized && db) {
-                    const userId = getOrCreateUserId();
-                    db.collection('users').doc(userId).set(dataToSave, { merge: true })
-                        .then(() => {
-                            console.log('☁️ Sincronizado con Firebase');
-                        })
-                        .catch((error) => {
-                            console.warn('⚠️ Error al sincronizar Firebase:', error);
-                        });
-                }
-                
                 showSaveIndicator();
                 console.log('💾 Datos guardados:', new Date().toLocaleTimeString());
                 return true;
@@ -302,40 +256,8 @@
             }
         }
         
-        async function loadData() {
+        function loadData() {
             try {
-                // Intentar cargar desde Firebase primero
-                if (firebaseInitialized && db) {
-                    const userId = getOrCreateUserId();
-                    try {
-                        const doc = await db.collection('users').doc(userId).get();
-                        if (doc.exists) {
-                            const data = doc.data();
-                            STATE.hasWork = data.hasWork;
-                            STATE.allActivities = data.allActivities || {...BASE_ACTIVITIES};
-                            STATE.activeActivities = data.activeActivities || [];
-                            STATE.completedTasks = data.completedTasks || {};
-                            STATE.deliveries = (data.deliveries || []).map(d => ({
-                                ...d,
-                                date: new Date(d.date),
-                                created: new Date(d.created || Date.now())
-                            }));
-                            
-                            // Guardar en localStorage como backup
-                            localStorage.setItem('fpDamApp', JSON.stringify(data));
-                            
-                            if (STATE.hasWork !== null) {
-                                STATE.currentView = 'home';
-                            }
-                            console.log('✅ Datos cargados desde Firebase');
-                            return true;
-                        }
-                    } catch (error) {
-                        console.warn('⚠️ Error al cargar desde Firebase, usando localStorage:', error);
-                    }
-                }
-                
-                // Fallback a localStorage
                 const saved = localStorage.getItem('fpDamApp');
                 if (saved) {
                     const data = JSON.parse(saved);
@@ -352,7 +274,7 @@
                     if (STATE.hasWork !== null) {
                         STATE.currentView = 'home';
                     }
-                    console.log('✅ Datos cargados desde localStorage');
+                    console.log('✅ Datos cargados - MODO PERMANENTE');
                     return true;
                 }
                 console.log('ℹ️ No hay datos guardados');
@@ -361,16 +283,6 @@
                 console.error('❌ Error al cargar:', e);
                 return false;
             }
-        }
-        
-        function getOrCreateUserId() {
-            let userId = localStorage.getItem('fpDamUserId');
-            if (!userId) {
-                userId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-                localStorage.setItem('fpDamUserId', userId);
-                console.log('🆔 Nuevo ID de usuario creado:', userId);
-            }
-            return userId;
         }
         
         function showSaveIndicator() {
@@ -573,65 +485,19 @@
         }
         
         function applyUrgentBoost() {
-        function applyUrgentBoost() {
             console.log('🔄 Redistribuyendo horarios...');
             const schedule = STATE.hasWork ? 'scheduleWithWork' : 'scheduleNoWork';
             
             // Restaurar horarios base
             Object.keys(BASE_ACTIVITIES).forEach(key => {
-                const stateAct = STATE.allActivities[key];
-                if (stateAct && BASE_ACTIVITIES[key][schedule]) {
-                    stateAct[schedule] = JSON.parse(JSON.stringify(BASE_ACTIVITIES[key][schedule]));
-                    stateAct.boosted = false;
-                    stateAct.boostedMultiplier = null;
-                    stateAct.boostedBaseHours = null;
-                }
-            });
-            
-            const urgentDeliveries = STATE.deliveries.filter(d => {
-                const daysUntil = getDaysUntilDelivery(d.date);
-                return daysUntil >= 0 && daysUntil <= 3;
-            });
-            
-            if (urgentDeliveries.length === 0) {
-                console.log('✅ Sin entregas urgentes');
-                return;
-            }
-            
-            console.log(`🔥 ${urgentDeliveries.length} entrega(s) urgente(s)`);
-            
-            // Simple: aplicar multiplicadores sin redistribuir por ahora
-            urgentDeliveries.forEach(delivery => {
-                const activity = STATE.allActivities[delivery.subject];
-                if (!activity) return;
-                const sched = activity[schedule];
-                if (!sched || sched.hours === 'Var') return;
-                
-                const baseHours = parseFloat(BASE_ACTIVITIES[delivery.subject][schedule].hours);
-                if (isNaN(baseHours)) return;
-                
-                const daysUntil = getDaysUntilDelivery(delivery.date);
-                const multiplier = daysUntil === 0 ? 3 : daysUntil === 1 ? 2.5 : 2;
-                const newHours = baseHours * multiplier;
-                
-                sched.hours = `${newHours.toFixed(2)}h`;
-                activity.boosted = true;
-                activity.boostedMultiplier = multiplier;
-                activity.boostedBaseHours = baseHours;
-                
-                console.log(`🔥 ${activity.name}: ${baseHours}h → ${newHours}h`);
-            });
-        }
-            
-            // Restaurar horarios base y limpiar boosted
-            Object.keys(BASE_ACTIVITIES).forEach(key => {
                 const baseAct = BASE_ACTIVITIES[key];
                 const stateAct = STATE.allActivities[key];
                 if (stateAct && baseAct[schedule]) {
                     stateAct[schedule] = { ...baseAct[schedule] };
-                    stateAct.boosted = false;
-                    stateAct.boostedMultiplier = null;
-                    stateAct.boostedBaseHours = null;
+                    // Limpiar propiedades de boost
+                    delete stateAct.boosted;
+                    delete stateAct.originalHours;
+                    delete stateAct.boostedHours;
                 }
             });
             
@@ -670,8 +536,9 @@
             
             console.log(`⏰ Total tiempo extra necesario: ${totalExtraNeeded.toFixed(2)}h`);
             
-            // PASO 1: Reducir fp-critical a 1h y fp-important a 45min
+            // PASO 1: Reducir fp-critical y fp-important a mínimo 1h
             let timeLiberated = 0;
+            const minMinutes = 60; // 1 hora mínimo
             
             STATE.activeActivities.forEach(actId => {
                 const activity = STATE.allActivities[actId];
@@ -680,6 +547,9 @@
                 // Saltar si esta actividad tiene entrega urgente
                 if (urgentDeliveries.some(d => d.subject === actId)) return;
                 
+                // Solo fp-critical y fp-important
+                if (activity.type !== 'fp-critical' && activity.type !== 'fp-important') return;
+                
                 const sched = activity[schedule];
                 if (!sched || sched.hours === 'Var' || sched.hours === '') return;
                 
@@ -687,28 +557,18 @@
                 if (isNaN(currentHours)) return;
                 
                 const currentMinutes = currentHours * 60;
-                let minMinutes = 0;
                 
-                // fp-critical: mínimo 1h (60min)
-                if (activity.type === 'fp-critical') {
-                    minMinutes = 60;
-                }
-                // fp-important: mínimo 45min
-                else if (activity.type === 'fp-important') {
-                    minMinutes = 45;
-                }
-                
-                if (minMinutes > 0 && currentMinutes > minMinutes) {
+                if (currentMinutes > minMinutes) {
                     const liberated = currentMinutes - minMinutes;
                     timeLiberated += liberated;
                     sched.hours = `${(minMinutes / 60).toFixed(2)}h`;
-                    console.log(`⬇️ ${activity.name}: ${currentHours.toFixed(2)}h → ${(minMinutes/60).toFixed(2)}h (libera ${(liberated/60).toFixed(2)}h)`);
+                    console.log(`⬇️ ${activity.name}: ${currentHours}h → 1h (libera ${(liberated/60).toFixed(2)}h)`);
                 }
             });
             
             console.log(`📦 PASO 1 liberó: ${(timeLiberated/60).toFixed(2)}h`);
             
-            // PASO 2: Eliminar Descanso y Revisión
+            // PASO 2: Eliminar Descanso y Revisión si hay tarea
             STATE.activeActivities.forEach(actId => {
                 const activity = STATE.allActivities[actId];
                 if (!activity) return;
@@ -717,12 +577,12 @@
                     const sched = activity[schedule];
                     if (sched && sched.hours) {
                         const hours = parseFloat(sched.hours);
-                        if (!isNaN(hours) && hours > 0) {
+                        if (!isNaN(hours)) {
                             timeLiberated += hours * 60;
                             sched.hours = '0h';
                             sched.start = '';
                             sched.end = '';
-                            console.log(`❌ Eliminado: ${activity.name} (libera ${hours.toFixed(2)}h)`);
+                            console.log(`❌ Eliminado: ${activity.name} (libera ${hours}h)`);
                         }
                     }
                 }
@@ -730,72 +590,59 @@
             
             console.log(`📦 PASO 2 total liberado: ${(timeLiberated/60).toFixed(2)}h`);
             
-            // PASO 3: Si aún falta tiempo, reducir fp-light (min 45min) y learning (min 15min)
+            // PASO 3: Solo si aún falta tiempo, tocar fp-light y learning
             const stillNeeded = (totalExtraNeeded * 60) - timeLiberated;
             
             if (stillNeeded > 0) {
                 console.log(`⚠️ Aún faltan ${(stillNeeded/60).toFixed(2)}h - aplicando PASO 3`);
                 
-                // Crear lista de fp-light y learning para reducir/eliminar
+                // Crear lista de fp-light y learning para reducir/eliminar (rotando)
                 const reducibles = [];
                 STATE.activeActivities.forEach(actId => {
                     const activity = STATE.allActivities[actId];
                     if (!activity) return;
                     if (activity.type === 'fp-light' || activity.type === 'learning') {
                         const sched = activity[schedule];
-                        if (sched && sched.hours && sched.hours !== 'Var' && sched.hours !== '0h') {
+                        if (sched && sched.hours && sched.hours !== 'Var') {
                             const hours = parseFloat(sched.hours);
-                            if (!isNaN(hours) && hours > 0) {
-                                reducibles.push({ 
-                                    id: actId, 
-                                    name: activity.name, 
-                                    type: activity.type,
-                                    hours: hours, 
-                                    schedule: sched 
-                                });
+                            if (!isNaN(hours)) {
+                                reducibles.push({ id: actId, name: activity.name, hours: hours, schedule: sched });
                             }
                         }
                     }
                 });
                 
-                if (reducibles.length > 0) {
-                    // Rotar eliminación (usar fecha como semilla)
-                    const dayOfWeek = STATE.currentDate.getDay();
-                    const startIndex = dayOfWeek % reducibles.length;
+                // Rotar eliminación (usar fecha como semilla)
+                const dayOfWeek = STATE.currentDate.getDay();
+                const startIndex = dayOfWeek % reducibles.length;
+                
+                let tempLiberated = timeLiberated;
+                for (let i = 0; i < reducibles.length && (totalExtraNeeded * 60) > tempLiberated; i++) {
+                    const idx = (startIndex + i) % reducibles.length;
+                    const item = reducibles[idx];
                     
-                    let tempLiberated = timeLiberated;
-                    for (let i = 0; i < reducibles.length && (totalExtraNeeded * 60) > tempLiberated; i++) {
-                        const idx = (startIndex + i) % reducibles.length;
-                        const item = reducibles[idx];
-                        
-                        // Determinar mínimo según tipo
-                        const minMinutes = item.type === 'fp-light' ? 45 : 15; // fp-light: 45min, learning: 15min
-                        const currentMinutes = item.hours * 60;
-                        
-                        // Primero intentar reducir al mínimo
-                        if (currentMinutes > minMinutes) {
-                            const reduction = currentMinutes - minMinutes;
-                            tempLiberated += reduction;
-                            item.schedule.hours = `${(minMinutes / 60).toFixed(2)}h`;
-                            console.log(`⬇️ ${item.name}: ${item.hours.toFixed(2)}h → ${(minMinutes/60).toFixed(2)}h (libera ${(reduction/60).toFixed(2)}h)`);
-                        }
-                        // Si ya está en mínimo o menos, eliminar (rotando)
-                        else if ((totalExtraNeeded * 60) > tempLiberated) {
-                            tempLiberated += currentMinutes;
-                            item.schedule.hours = '0h';
-                            item.schedule.start = '';
-                            item.schedule.end = '';
-                            console.log(`❌ Eliminado: ${item.name} (libera ${item.hours.toFixed(2)}h)`);
-                        }
+                    // Intentar reducir a 15min primero
+                    if (item.hours > 0.25) {
+                        const reduction = item.hours - 0.25;
+                        tempLiberated += reduction * 60;
+                        item.schedule.hours = '0.25h';
+                        console.log(`⬇️ ${item.name}: ${item.hours}h → 0.25h (libera ${reduction.toFixed(2)}h)`);
+                    } else {
+                        // Eliminar completamente
+                        tempLiberated += item.hours * 60;
+                        item.schedule.hours = '0h';
+                        item.schedule.start = '';
+                        item.schedule.end = '';
+                        console.log(`❌ Eliminado: ${item.name} (libera ${item.hours}h)`);
                     }
-                    
-                    timeLiberated = tempLiberated;
                 }
+                
+                timeLiberated = tempLiberated;
             }
             
             console.log(`✅ Total tiempo liberado: ${(timeLiberated/60).toFixed(2)}h`);
             
-            // PASO 4: Aplicar multiplicadores a materias con entrega
+            // Aplicar multiplicadores a materias con entrega
             urgentDeliveries.forEach(delivery => {
                 const activity = STATE.allActivities[delivery.subject];
                 if (!activity) return;
@@ -807,15 +654,16 @@
                 const multiplier = daysUntil === 0 ? 3 : daysUntil === 1 ? 2.5 : 2;
                 const newHours = baseHours * multiplier;
                 
-                sched.hours = `${newHours.toFixed(2)}h`;
+                // Marcar actividad como boosted con información visual
                 activity.boosted = true;
-                activity.boostedMultiplier = multiplier;
-                activity.boostedBaseHours = baseHours;
+                activity.originalHours = `${baseHours}h`;
+                activity.boostedHours = `${newHours.toFixed(2)}h`;
                 
-                console.log(`🔥 ${activity.name}: ${baseHours.toFixed(2)}h → ${newHours.toFixed(2)}h (x${multiplier})`);
+                sched.hours = `${newHours.toFixed(2)}h`;
+                console.log(`🔥 ${activity.name}: ${baseHours}h → ${newHours}h (x${multiplier})`);
             });
             
-            // PASO 5: Recalcular horarios REALES (08:00-21:00 sin huecos)
+            // Recalcular horarios REALES
             console.log('🕐 Recalculando horarios start/end...');
             
             const activitiesToSchedule = [];
@@ -832,6 +680,7 @@
                 
                 // Bloques intocables mantienen su horario fijo
                 if (activity.fixed || actId === 'cena' || actId === 'familia' || actId === 'nocturna') {
+                    // Mantener horario original de BASE_ACTIVITIES
                     const baseSched = BASE_ACTIVITIES[actId][schedule];
                     if (baseSched) {
                         sched.start = baseSched.start;
@@ -841,79 +690,46 @@
                     return;
                 }
                 
-                // Almuerzo se agrega separadamente con horario movible
-                if (actId === 'almuerzo') {
-                    return;
-                }
-                
                 activitiesToSchedule.push({
                     id: actId,
                     name: activity.name,
                     hours: hours,
                     priority: activity.priority || 3,
-                    schedule: sched,
-                    boosted: activity.boosted || false
+                    schedule: sched
                 });
             });
             
             // Ordenar por prioridad
             activitiesToSchedule.sort((a, b) => a.priority - b.priority);
             
-            // Calcular horarios secuencialmente sin huecos
+            // Calcular horarios
             let currentMinutes = 8 * 60; // 08:00
-            const endDay = 21 * 60; // 21:00 límite
+            const almuerzoStart = parseFloat(BASE_ACTIVITIES.almuerzo[schedule].start.split(':')[0]) * 60 + 
+                                 parseFloat(BASE_ACTIVITIES.almuerzo[schedule].start.split(':')[1]);
+            const almuerzoEnd = parseFloat(BASE_ACTIVITIES.almuerzo[schedule].end.split(':')[0]) * 60 + 
+                               parseFloat(BASE_ACTIVITIES.almuerzo[schedule].end.split(':')[1]);
+            const endDay = 21 * 60; // 21:00 (límite)
             
-            // Ideal almuerzo: 14:00-15:15 (o según duración base)
-            const almuerzoHours = parseFloat(BASE_ACTIVITIES.almuerzo[schedule].hours);
-            const almuerzoDuration = almuerzoHours * 60;
-            let almuerzoStart = 14 * 60; // Ideal 14:00
-            let almuerzoEnd = almuerzoStart + almuerzoDuration;
-            
-            // Dividir materias boosted muy largas (>3h) en 2 bloques
-            const scheduledItems = [];
             activitiesToSchedule.forEach(item => {
-                if (item.boosted && item.hours > 3) {
-                    // Dividir en 2 bloques (mañana y tarde)
-                    const halfHours = item.hours / 2;
-                    scheduledItems.push({
-                        ...item,
-                        hours: halfHours,
-                        name: `${item.name} (Parte 1)`,
-                        isFirstHalf: true
-                    });
-                    scheduledItems.push({
-                        ...item,
-                        hours: halfHours,
-                        name: `${item.name} (Parte 2)`,
-                        isSecondHalf: true,
-                        priority: item.priority + 0.5 // Ligeramente después
-                    });
-                } else {
-                    scheduledItems.push(item);
+                // Almuerzo mantiene horario fijo
+                if (item.id === 'almuerzo') {
+                    const baseSched = BASE_ACTIVITIES.almuerzo[schedule];
+                    item.schedule.start = baseSched.start;
+                    item.schedule.end = baseSched.end;
+                    item.schedule.hours = baseSched.hours;
+                    return;
                 }
-            });
-            
-            // Re-ordenar con bloques divididos
-            scheduledItems.sort((a, b) => a.priority - b.priority);
-            
-            // Asignar horarios sin huecos
-            scheduledItems.forEach(item => {
+                
                 const durationMinutes = Math.round(item.hours * 60);
                 
-                // Si choca con almuerzo, saltar al final del almuerzo
-                if (currentMinutes < almuerzoEnd && currentMinutes + durationMinutes > almuerzoStart) {
-                    // Si empieza antes del almuerzo pero terminaría después
-                    if (currentMinutes < almuerzoStart) {
-                        currentMinutes = almuerzoEnd;
-                    }
+                // Si choca con almuerzo, saltar
+                if (currentMinutes < almuerzoStart && currentMinutes + durationMinutes > almuerzoStart) {
+                    currentMinutes = almuerzoEnd;
                 }
                 
-                // Si pasa del límite de día (21:00), no agregar
+                // Si pasa del límite, no agregar
                 if (currentMinutes + durationMinutes > endDay) {
-                    console.log(`⚠️ ${item.name} no cabe en el horario (necesita ${(durationMinutes/60).toFixed(2)}h)`);
-                    item.schedule.hours = '0h';
-                    item.schedule.start = '';
-                    item.schedule.end = '';
+                    console.log(`⚠️ ${item.name} no cabe en el horario`);
                     return;
                 }
                 
@@ -927,10 +743,10 @@
                 item.schedule.start = `${String(startH).padStart(2, '0')}:${String(startM).padStart(2, '0')}`;
                 item.schedule.end = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
                 
-                console.log(`✓ ${item.name}: ${item.schedule.start}-${item.schedule.end} (${item.hours.toFixed(2)}h)`);
+                console.log(`✓ ${item.name}: ${item.schedule.start}-${item.schedule.end} (${item.hours}h)`);
                 
-                // Avanzar SIN huecos
-                currentMinutes = endMinutes;
+                // Avanzar (con 15min de descanso implícito)
+                currentMinutes = endMinutes + 15;
             });
             
             console.log('✅ Redistribución completada');
@@ -1008,9 +824,9 @@
                         <div class="header">
                             <div style="font-size: 60px; margin-bottom: 15px;">📚</div>
                             <h1>FP DAM Gestor</h1>
-                            <p style="margin-top: 10px;">Gestión de estudio con sincronización automática</p>
+                            <p style="margin-top: 10px;">Gestión de estudio con almacenamiento permanente</p>
                             <div class="storage-badge">
-                                ☁️ Sincronizado en todos tus dispositivos
+                                💾 Datos guardados automáticamente
                             </div>
                         </div>
                         
@@ -1184,8 +1000,8 @@
                                 <div class="activity-name">${activity.name}</div>
                                 <div class="activity-time">⏰ ${sched.start} - ${sched.end}</div>
                             </div>
-                            <span class="badge ${activity.color}">${sched.hours}</span>
-                            ${activity.boosted ? `<span class="badge badge-orange">${activity.boostedBaseHours}h → ${parseFloat(sched.hours).toFixed(1)}h 🔥</span>` : ''}
+                            <span class="badge ${activity.color}">${activity.boosted ? activity.boostedHours : sched.hours}</span>
+                            ${activity.boosted ? `<span class="badge badge-orange">🔥 ${activity.originalHours} → ${activity.boostedHours}</span>` : ''}
                         </div>
                     `;
                 });
@@ -1613,11 +1429,11 @@
         // INICIALIZACIÓN
         // =================================================================
         
-        window.addEventListener('load', async () => {
+        window.addEventListener('load', () => {
             console.log('🚀 Iniciando FP DAM Gestor...');
             
-            // Cargar datos guardados (async)
-            await loadData();
+            // Cargar datos guardados
+            loadData();
             
             // Ocultar pantalla de carga
             setTimeout(() => {
