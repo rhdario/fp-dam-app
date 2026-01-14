@@ -1,298 +1,224 @@
-# 📋 RESUMEN COMPLETO TÉCNICO - FP DAM GESTOR PWA v1.0
+# 📋 RESUMEN COMPLETO PARA PROGRAMADOR - FP DAM GESTOR v4.0
 
 ## 🎯 PROPÓSITO
-
-Este documento contiene **TODA la información técnica** para crear la aplicación desde cero sin errores.
-
-**AUDIENCIA:** Desarrolladores.
+Este documento contiene TODO lo necesario para duplicar exactamente esta aplicación en un chat nuevo sin necesidad de explicaciones adicionales.
 
 ---
 
-## 📦 PROYECTO
+## 📱 QUÉ ES
 
-### **Usuario:**
-- **Ubicación:** Ciutadella, Balearic Islands, ES
-- **Estudiante:** FP DAM
-- **Situación:** Variable (trabajo 8h o sin trabajo)
-- **Dispositivos:** Samsung A36 + PC
-- **Deploy:** GitHub Pages
+PWA para gestionar horarios de estudio FP DAM con:
+- Redistribución automática de horarios cuando hay entregas urgentes
+- Sincronización multiplataforma vía Firebase
+- Notificaciones push automáticas
+- Dos modos: con/sin trabajo
 
-### **Versión:**
-- **v1.0** - Redistribución Optimizada + Firebase
-- **Fecha:** 12 Enero 2026
-- **Archivos:** `index.html` (~1620 líneas), `manifest.json`, `service-worker.js`
+**Usuario:** Estudiante FP DAM, 50 años, Ciutadella (ES), Samsung A36 + Chrome Canary
 
 ---
 
 ## 🛠️ STACK TÉCNICO
 
 ```
-Frontend: JavaScript Vanilla ES6+, HTML5, CSS3 inline
-Persistencia: Firebase Firestore + localStorage (backup)
-PWA: Service Worker, manifest.json, notificaciones push
+- JavaScript Vanilla ES6+ (SIN frameworks)
+- Firebase Realtime Database 10.7.1
+- HTML5 + CSS3 inline (un solo archivo)
+- PWA con Service Worker
+- localStorage (fallback)
+- Web Notifications API
+```
+
+**Archivos:**
+```
+/
+├── index.html           (~1550 líneas - ÚNICO A MODIFICAR)
+├── manifest.json        (PWA config - NO TOCAR)
+├── service-worker.js    (Cache - NO TOCAR)
+├── README.md            (GitHub público)
+├── FIREBASE-SETUP.md    (Guía configuración)
+└── RESUMEN-COMPLETO-PROGRAMADOR.md (este archivo)
 ```
 
 ---
 
-## 📊 BASE_ACTIVITIES (17 actividades)
+## 📊 ESTRUCTURA DE DATOS
 
-**NOTA:** `descanso1` eliminado (usuario usa Pomodoro).
-
+### Estado Global
 ```javascript
-const BASE_ACTIVITIES = {
-    // fp-critical (Prioridad 1, Mínimo 1h)
-    prog: { 
-        id: 'prog', name: 'Programación', type: 'fp-critical', color: 'badge-red',
-        scheduleNoWork: { start: '08:00', end: '10:00', hours: '2h' },
-        scheduleWithWork: { start: '07:30', end: '08:30', hours: '1h' },
-        priority: 1 
-    },
-    bd: { 
-        id: 'bd', name: 'Base de Datos', type: 'fp-critical', color: 'badge-red',
-        scheduleNoWork: { start: '10:15', end: '11:45', hours: '1.5h' },
-        scheduleWithWork: { start: '17:30', end: '18:30', hours: '1h' },
-        priority: 1 
-    },
-    
-    // fp-important (Prioridad 2, Mínimo 45min)
-    si: {
-        id: 'si', name: 'Sistemas Informáticos', type: 'fp-important', color: 'badge-yellow',
-        scheduleNoWork: { start: '15:00', end: '16:00', hours: '1h' },
-        scheduleWithWork: { start: '18:30', end: '19:00', hours: '0.5h' },
-        priority: 2
-    },
-    ed: {
-        id: 'ed', name: 'Entornos Desarrollo', type: 'fp-important', color: 'badge-yellow',
-        scheduleNoWork: { start: '16:00', end: '16:45', hours: '0.75h' },
-        scheduleWithWork: { start: '20:30', end: '21:00', hours: '0.5h' },
-        priority: 2
-    },
-    
-    // fp-light (Prioridad 3, Mínimo 45min)
-    lm: {
-        id: 'lm', name: 'Lenguajes Marcas', type: 'fp-light', color: 'badge-green',
-        scheduleNoWork: { start: '16:45', end: '17:30', hours: '0.75h' },
-        scheduleWithWork: { start: 'Var', end: 'Var', hours: 'Var' },
-        priority: 3
-    },
-    digi: {
-        id: 'digi', name: 'Digitalización', type: 'fp-light', color: 'badge-green',
-        scheduleNoWork: { start: '17:30', end: '18:00', hours: '0.5h' },
-        scheduleWithWork: { start: 'Var', end: 'Var', hours: 'Var' },
-        priority: 3
-    },
-    ipo: {
-        id: 'ipo', name: 'Itinerario IPO', type: 'fp-light', color: 'badge-green',
-        scheduleNoWork: { start: '18:00', end: '18:30', hours: '0.5h' },
-        scheduleWithWork: { start: 'Var', end: 'Var', hours: 'Var' },
-        priority: 3
-    },
-    
-    // learning (Prioridad 2, Mínimo 15min, rotan por día)
-    ingles: {
-        id: 'ingles', name: 'Inglés', type: 'learning', color: 'badge-purple',
-        scheduleNoWork: { start: '11:45', end: '12:15', hours: '0.5h' },
-        scheduleWithWork: { start: '20:30', end: '20:50', hours: '0.33h' },
-        priority: 2, weekDays: [1,2,4]
-    },
-    ias: {
-        id: 'ias', name: 'Estudiar IAs', type: 'learning', color: 'badge-purple',
-        scheduleNoWork: { start: '12:15', end: '12:45', hours: '0.5h' },
-        scheduleWithWork: { start: '19:30', end: '20:00', hours: '0.5h' },
-        priority: 2, weekDays: [1,3,5]
-    },
-    seo: {
-        id: 'seo', name: 'Estudiar SEO', type: 'learning', color: 'badge-purple',
-        scheduleNoWork: { start: '12:45', end: '13:15', hours: '0.5h' },
-        scheduleWithWork: { start: '20:00', end: '20:30', hours: '0.5h' },
-        priority: 2, weekDays: [2,4,5]
-    },
-    
-    // personal
-    trabajo: {
-        id: 'trabajo', name: 'Búsqueda Trabajo', type: 'personal', color: 'badge-blue',
-        scheduleNoWork: { start: '18:30', end: '20:00', hours: '1.5h' },
-        scheduleWithWork: { start: '', end: '', hours: '' },
-        priority: 2, onlyNoWork: true
-    },
-    tiempolibre: {
-        id: 'tiempolibre', name: 'Tiempo Libre', type: 'personal', color: 'badge-blue',
-        scheduleNoWork: { start: '', end: '', hours: '' },
-        scheduleWithWork: { start: '', end: '', hours: '' },
-        priority: 3, onlyNoWork: true
-    },
-    revision: {
-        id: 'revision', name: 'Revisión del Día', type: 'personal', color: 'badge-blue',
-        scheduleNoWork: { start: '20:00', end: '21:00', hours: '1h' },
-        scheduleWithWork: { start: '', end: '', hours: '' },
-        priority: 2, onlyNoWork: true
-    },
-    
-    // break
-    almuerzo: {
-        id: 'almuerzo', name: 'Almuerzo + Descanso', type: 'break', color: 'badge-orange',
-        scheduleNoWork: { start: '13:15', end: '15:00', hours: '1.75h' },
-        scheduleWithWork: { start: '13:00', end: '14:00', hours: '1h' },
-        priority: 5, fixed: true
-    },
-    
-    // fixed (INTOCABLES)
-    cena: {
-        id: 'cena', name: 'Cena', type: 'personal', color: 'badge-orange',
-        scheduleNoWork: { start: '21:00', end: '22:00', hours: '1h' },
-        scheduleWithWork: { start: '22:00', end: '23:00', hours: '1h' },
-        priority: 5, fixed: true
-    },
-    familia: {
-        id: 'familia', name: 'Pareja/Familia', type: 'personal', color: 'badge-purple',
-        scheduleNoWork: { start: '22:00', end: '23:00', hours: '1h' },
-        scheduleWithWork: { start: '21:00', end: '22:00', hours: '1h' },
-        priority: 5, fixed: true
-    },
-    nocturna: {
-        id: 'nocturna', name: 'Rutina Nocturna', type: 'personal', color: 'badge-blue',
-        scheduleNoWork: { start: '23:00', end: '00:00', hours: '1h' },
-        scheduleWithWork: { start: '23:00', end: '00:00', hours: '1h' },
-        priority: 5, fixed: true
-    }
+let STATE = {
+    currentView: 'setup|home|daily|weekly|deliveries|settings',
+    setupStep: 1|2,
+    hasWork: true|false|null,
+    allActivities: {...BASE_ACTIVITIES},
+    activeActivities: ['prog', 'bd', ...],
+    completedTasks: { '2026-1-14': { 'prog': true } },
+    deliveries: [{ id, subject, date, description, created }],
+    currentDate: new Date(),
+    notifiedActivities: new Set()
 };
 ```
 
----
+### Actividad Base
+```javascript
+{
+    id: 'prog',
+    name: 'Programación',
+    type: 'fp-critical|fp-important|fp-light|learning|personal|break',
+    color: 'badge-red|badge-yellow|badge-green|badge-purple|badge-blue|badge-orange',
+    scheduleNoWork: { start: '08:00', end: '10:00', hours: '2h' },
+    scheduleWithWork: { start: '07:30', end: '08:30', hours: '1h' },
+    priority: 1|2|3|5,
+    weekDays: [1,2,4],  // Solo learning
+    onlyNoWork: false,
+    fixed: false  // true para cena/familia/rutina
+}
+```
 
-## 🎯 REGLAS POR TIPO
+### 18 Actividades Totales
 
-| Tipo | Mínimo | Reducible | Eliminable | Notas |
-|------|--------|-----------|------------|-------|
-| fp-critical | 1h | ✅ (nunca <1h) | ❌ | Prog, BD |
-| fp-important | 45min | ✅ (nunca <45min) | ❌ | Sistemas, Entornos |
-| fp-light | 45min | ✅ (nunca <45min) | ✅ rotar | Lenguajes, Digi, IPO |
-| learning | 15min | ✅ (nunca <15min) | ✅ rotar | Inglés, IAs, SEO |
-| personal | - | ✅ | ✅ | Revisión siempre eliminable |
-| break | - | ❌ | ❌ | Almuerzo movible 14:00-15:15 ideal |
-| fixed | - | ❌ NUNCA | ❌ NUNCA | Cena, Familia, Rutina |
+**7 Materias FP:**
+- prog, bd (critical, red, priority 1)
+- si, ed (important, yellow, priority 2)
+- lm, digi, ipo (light, green, priority 3)
+
+**3 Capacitaciones:**
+- ingles (weekDays: [1,2,4])
+- ias (weekDays: [1,3,5])
+- seo (weekDays: [2,4,5])
+
+**8 Bloques Personales:**
+- trabajo, tiempolibre, revision (onlyNoWork: true)
+- descanso1 (onlyNoWork: true)
+- almuerzo
+- cena, familia, nocturna (fixed: true)
 
 ---
 
 ## 🔥 REDISTRIBUCIÓN INTELIGENTE
 
-### **Activación:**
-Entregas urgentes (≤3 días).
-
-### **Multiplicadores:**
-```
-HOY (0 días): x3
-MAÑANA (1 día): x2.5
-2-3 días: x2
+### Activación
+```javascript
+daysUntil = getDaysUntilDelivery(delivery.date);
+if (daysUntil >= 0 && daysUntil <= 3) // Urgente
 ```
 
-### **ALGORITMO:**
+### Multiplicadores
+```javascript
+const multiplier = daysUntil === 0 ? 3 : daysUntil === 1 ? 2.5 : 2;
+```
 
-#### **PASO 0: Restaurar**
+### Algoritmo (5 PASOS)
+
+#### PASO 0: Restaurar Base
 ```javascript
 Object.keys(BASE_ACTIVITIES).forEach(key => {
-    stateAct[schedule] = { ...BASE_ACTIVITIES[key][schedule] };
-    stateAct.boosted = false;
-    stateAct.boostedMultiplier = null;
-    stateAct.boostedBaseHours = null;
+    STATE.allActivities[key][schedule] = {...BASE_ACTIVITIES[key][schedule]};
+    delete STATE.allActivities[key].boosted;
+    delete STATE.allActivities[key].originalHours;
+    delete STATE.allActivities[key].boostedHours;
+    delete STATE.allActivities[key].reduced;
+    delete STATE.allActivities[key].originalHoursReduced;
+    delete STATE.allActivities[key].reducedHours;
 });
 ```
 
-#### **PASO 1: Reducir fp-critical (1h) y fp-important (45min)**
+#### PASO 1: Reducir fp-critical/important
+- Solo materias **SIN entrega urgente**
+- Reducir a **1h mínimo** (60 minutos)
+- Marcar como reducidas:
 ```javascript
-let minMinutes = 0;
-if (activity.type === 'fp-critical') minMinutes = 60;
-else if (activity.type === 'fp-important') minMinutes = 45;
+activity.reduced = true;
+activity.originalHoursReduced = `${currentHours}h`;
+activity.reducedHours = `${newHours}h`;
+```
 
-if (minMinutes > 0 && currentMinutes > minMinutes) {
-    timeLiberated += currentMinutes - minMinutes;
-    activity[schedule].hours = `${(minMinutes/60).toFixed(2)}h`;
+#### PASO 2: Eliminar Descanso y Revisión
+```javascript
+if (actId === 'descanso1' || actId === 'revision') {
+    sched.hours = '0h';
+    sched.start = '';
+    sched.end = '';
 }
 ```
 
-#### **PASO 2: Eliminar Revisión**
+#### PASO 3: Reducir fp-light y learning (si falta tiempo)
+- Reducir primero a 15min (0.25h)
+- Si no alcanza → eliminar (0h)
+- **Rotar eliminación** usando día de semana
+
+#### PASO 4: Aplicar Multiplicadores
 ```javascript
-if (actId === 'revision') {
-    timeLiberated += hours * 60;
-    activity[schedule].hours = '0h';
-    activity[schedule].start = '';
-    activity[schedule].end = '';
-}
-```
-
-#### **PASO 3: Reducir fp-light (45min) y learning (15min)**
-```javascript
-// Mínimos
-const minMinutes = item.type === 'fp-light' ? 45 : 15;
-
-// Primero reducir al mínimo
-if (currentMinutes > minMinutes) {
-    tempLiberated += currentMinutes - minMinutes;
-    item.schedule.hours = `${(minMinutes/60).toFixed(2)}h`;
-}
-// Si ya está en mínimo, eliminar (rotando)
-else {
-    tempLiberated += currentMinutes;
-    item.schedule.hours = '0h';
-}
-
-// Rotación
-const dayOfWeek = STATE.currentDate.getDay();
-const startIndex = dayOfWeek % reducibles.length;
-```
-
-#### **PASO 4: Aplicar multiplicadores**
-```javascript
-const multiplier = daysUntil === 0 ? 3 : daysUntil === 1 ? 2.5 : 2;
-const newHours = baseHours * multiplier;
-
-activity[schedule].hours = `${newHours.toFixed(2)}h`;
 activity.boosted = true;
-activity.boostedMultiplier = multiplier;
-activity.boostedBaseHours = baseHours;
+activity.originalHours = `${baseHours}h`;
+activity.boostedHours = `${newHours.toFixed(2)}h`;
+sched.hours = `${newHours.toFixed(2)}h`;
 ```
 
-#### **PASO 5: Recalcular horarios SIN HUECOS**
+#### PASO 5: Recalcular start/end
 ```javascript
-// Dividir materias >3h en 2 bloques
-if (item.boosted && item.hours > 3) {
-    const halfHours = item.hours / 2;
-    scheduledItems.push({ ...item, hours: halfHours, name: `${item.name} (Parte 1)` });
-    scheduledItems.push({ ...item, hours: halfHours, name: `${item.name} (Parte 2)`, priority: item.priority + 0.5 });
-}
+let currentMinutes = 8 * 60; // 08:00
+const endDay = 21 * 60; // 21:00
 
-// Asignar horarios secuencialmente
-let currentMinutes = 8 * 60;
-const endDay = 21 * 60;
-
-scheduledItems.forEach(item => {
+activitiesToSchedule.forEach(item => {
     const durationMinutes = Math.round(item.hours * 60);
     
     // Saltar almuerzo si choca
-    if (currentMinutes < almuerzoEnd && currentMinutes + durationMinutes > almuerzoStart) {
-        if (currentMinutes < almuerzoStart) currentMinutes = almuerzoEnd;
-    }
-    
-    // Verificar límite
-    if (currentMinutes + durationMinutes > endDay) {
-        item.schedule.hours = '0h';
-        return;
+    if (currentMinutes < almuerzoStart && currentMinutes + durationMinutes > almuerzoStart) {
+        currentMinutes = almuerzoEnd;
     }
     
     // Calcular start/end
-    item.schedule.start = calcTime(currentMinutes);
-    item.schedule.end = calcTime(currentMinutes + durationMinutes);
+    item.schedule.start = `${pad(Math.floor(currentMinutes/60))}:${pad(currentMinutes%60)}`;
+    item.schedule.end = `${pad(Math.floor((currentMinutes+durationMinutes)/60))}:${pad((currentMinutes+durationMinutes)%60)}`;
     
-    // Avanzar SIN huecos
+    // Avanzar SIN descanso adicional (corrige huecos)
     currentMinutes = currentMinutes + durationMinutes;
 });
 ```
 
-### **Bloques fixed:**
+**CRÍTICO:** NO agregar 15min entre actividades (causa huecos)
+
+### Bloques Fixed
 ```javascript
 if (activity.fixed || actId === 'cena' || actId === 'familia' || actId === 'nocturna') {
-    activity[schedule] = { ...BASE_ACTIVITIES[actId][schedule] };
-    return;
+    sched.start = BASE_ACTIVITIES[actId][schedule].start;
+    sched.end = BASE_ACTIVITIES[actId][schedule].end;
+    sched.hours = BASE_ACTIVITIES[actId][schedule].hours;
+    return; // No reorganizar
+}
+```
+
+---
+
+## 🔔 NOTIFICACIONES
+
+### Sistema
+```javascript
+setInterval(() => {
+    const now = new Date();
+    const timeStr = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+    const dateKey = getDateKey(now);
+    
+    STATE.activeActivities.forEach(actId => {
+        const activity = STATE.allActivities[actId];
+        const sched = activity[schedule];
+        const key = `${dateKey}-${actId}-${sched.start}`;
+        
+        if (sched.start === timeStr && !STATE.notifiedActivities.has(key)) {
+            new Notification('⏰ FP DAM - Es la hora!', {
+                body: `Ahora: ${activity.name} (${sched.hours})`,
+                icon: '📚'
+            });
+            STATE.notifiedActivities.add(key);
+        }
+    });
+}, 1000);
+```
+
+### Permisos
+```javascript
+if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission();
 }
 ```
 
@@ -300,176 +226,257 @@ if (activity.fixed || actId === 'cena' || actId === 'familia' || actId === 'noct
 
 ## ☁️ FIREBASE
 
-### **SDK en `<head>`:**
-```html
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-```
-
-### **Config:**
+### Configuración (línea ~166)
 ```javascript
 const firebaseConfig = {
-    apiKey: "TU_API_KEY",
-    authDomain: "tu-proyecto.firebaseapp.com",
-    projectId: "tu-proyecto-id",
-    storageBucket: "tu-proyecto.appspot.com",
-    messagingSenderId: "123456789",
-    appId: "1:123456789:web:abcdef"
+    apiKey: "...",
+    authDomain: "...",
+    databaseURL: "https://...-default-rtdb.firebaseio.com",
+    projectId: "...",
+    storageBucket: "...",
+    messagingSenderId: "...",
+    appId: "..."
 };
 
 let db = null;
-let firebaseInitialized = false;
+let firebaseEnabled = false;
+const FIREBASE_PATH = 'fp-dam-user-data';
 
-try {
-    if (typeof firebase !== 'undefined') {
-        firebase.initializeApp(firebaseConfig);
-        db = firebase.firestore();
-        firebaseInitialized = true;
-    }
-} catch (error) {
-    firebaseInitialized = false;
+if (firebaseConfig.apiKey !== "TU_API_KEY_AQUI") {
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.database();
+    firebaseEnabled = true;
 }
 ```
 
-### **saveData():**
+### Guardar (Dual: localStorage + Firebase)
 ```javascript
 function saveData() {
-    const dataToSave = { hasWork, allActivities, activeActivities, completedTasks, deliveries, lastSaved, version: '1.0-final' };
+    const data = { hasWork, allActivities, activeActivities, completedTasks, deliveries, lastSaved, version };
     
-    localStorage.setItem('fpDamApp', JSON.stringify(dataToSave));
+    // localStorage (siempre, fallback)
+    localStorage.setItem('fpDamApp', JSON.stringify(data));
     
-    if (firebaseInitialized && db) {
-        const userId = getOrCreateUserId();
-        db.collection('users').doc(userId).set(dataToSave, { merge: true });
+    // Firebase (asíncrono, no bloquea)
+    if (firebaseEnabled && db) {
+        db.ref(FIREBASE_PATH).set(data).catch(err => console.error(err));
     }
-    
-    showSaveIndicator();
-    return true;
 }
 ```
 
-### **loadData():**
+### Cargar (localStorage → luego Firebase en background)
 ```javascript
-async function loadData() {
-    if (firebaseInitialized && db) {
-        const userId = getOrCreateUserId();
-        const doc = await db.collection('users').doc(userId).get();
-        if (doc.exists) {
-            const data = doc.data();
-            // Cargar STATE desde data
-            localStorage.setItem('fpDamApp', JSON.stringify(data));
-            return true;
-        }
-    }
-    
+function loadData() {
+    // 1. Cargar localStorage (rápido)
     const saved = localStorage.getItem('fpDamApp');
     if (saved) {
-        const data = JSON.parse(saved);
-        // Cargar STATE desde data
-        return true;
+        applyDataToState(JSON.parse(saved));
     }
-    return false;
+    
+    // 2. Firebase en background (no bloquea)
+    if (firebaseEnabled && db) {
+        db.ref(FIREBASE_PATH).once('value').then(snapshot => {
+            const firebaseData = snapshot.val();
+            if (firebaseData) {
+                const localTS = saved ? JSON.parse(saved).lastSaved : null;
+                const firebaseTS = firebaseData.lastSaved;
+                
+                // Si Firebase es más reciente
+                if (!localTS || firebaseTS > localTS) {
+                    applyDataToState(firebaseData);
+                    localStorage.setItem('fpDamApp', JSON.stringify(firebaseData));
+                    render(); // Re-renderizar
+                }
+            }
+        });
+    }
 }
 ```
 
-### **getOrCreateUserId():**
+**Estrategia:** No bloquea el inicio, carga localStorage primero y sincroniza Firebase después.
+
+---
+
+## 🎨 VISTAS
+
+### DailyView - Renderizado de Actividades
+
 ```javascript
-function getOrCreateUserId() {
-    let userId = localStorage.getItem('fpDamUserId');
-    if (!userId) {
-        userId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-        localStorage.setItem('fpDamUserId', userId);
-    }
-    return userId;
+activitiesHTML += `
+    <div class="activity-item ${completed ? 'completed' : ''}" onclick="toggleTask('${activity.id}')">
+        <div class="checkbox ${completed ? 'checked' : ''}"></div>
+        <div class="activity-content">
+            <div class="activity-name">${activity.name}</div>
+            <div class="activity-time">⏰ ${sched.start} - ${sched.end}</div>
+        </div>
+        <span class="badge ${activity.color}">
+            ${activity.boosted ? activity.boostedHours : (activity.reduced ? activity.reducedHours : sched.hours)}
+        </span>
+        ${activity.boosted ? `<span class="badge badge-orange">🔥 ${activity.originalHours} → ${activity.boostedHours}</span>` : ''}
+        ${activity.reduced ? `<span class="badge badge-blue">⬇️ ${activity.originalHoursReduced} → ${activity.reducedHours}</span>` : ''}
+    </div>
+`;
+```
+
+**Badges:**
+- 🔥 **Naranja** (badge-orange): Materia boosteada
+- ⬇️ **Azul** (badge-blue): Materia reducida
+- Color de la materia: Horas actuales
+
+---
+
+## 🔧 FUNCIONES CRÍTICAS
+
+```javascript
+function formatDate(date) {
+    const days = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+    const months = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    return `${days[date.getDay()]} ${date.getDate()} de ${months[date.getMonth()]}`;
+}
+
+function getDateKey(date) {
+    return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+}
+
+function getDaysUntilDelivery(deliveryDate) {
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    const delivery = new Date(deliveryDate);
+    delivery.setHours(0,0,0,0);
+    return Math.floor((delivery - today) / (1000*60*60*24));
+}
+
+function getProgress(date = STATE.currentDate) {
+    const dateKey = getDateKey(date);
+    const tasks = STATE.completedTasks[dateKey] || {};
+    const activitiesToday = STATE.activeActivities.filter(id => {
+        const act = STATE.allActivities[id];
+        if (STATE.hasWork && act.onlyNoWork) return false;
+        if (act.weekDays && !act.weekDays.includes(date.getDay())) return false;
+        const sched = act[STATE.hasWork ? 'scheduleWithWork' : 'scheduleNoWork'];
+        return sched && sched.start !== '' && sched.start !== 'Var' && sched.hours !== '0h';
+    });
+    const completed = activitiesToday.filter(id => tasks[id]).length;
+    return activitiesToday.length === 0 ? 0 : Math.round((completed / activitiesToday.length) * 100);
+}
+
+function toggleTask(activityId) {
+    const dateKey = getDateKey(STATE.currentDate);
+    if (!STATE.completedTasks[dateKey]) STATE.completedTasks[dateKey] = {};
+    STATE.completedTasks[dateKey][activityId] = !STATE.completedTasks[dateKey][activityId];
+    saveData();
+    render();
 }
 ```
 
 ---
 
-## 🎨 BADGE VISUAL
+## 🎨 ESTILOS
 
-```javascript
-${activity.boosted ? `<span class="badge badge-orange">${activity.boostedBaseHours}h → ${parseFloat(sched.hours).toFixed(1)}h 🔥</span>` : ''}
+### Badges
+```css
+.badge-red { background: #ef4444; }
+.badge-yellow { background: #eab308; }
+.badge-green { background: #22c55e; }
+.badge-purple { background: #a855f7; }
+.badge-blue { background: #3b82f6; }
+.badge-orange { background: #f97316; }
 ```
 
-**Resultado:** `"2h → 4h 🔥"`
-
----
-
-## 📱 PWA
-
-### **manifest.json:**
-```json
-{
-  "name": "FP DAM Gestor de Estudio",
-  "short_name": "FP DAM",
-  "start_url": "./",
-  "display": "standalone",
-  "theme_color": "#2563eb"
-}
-```
-
-### **service-worker.js:**
-```javascript
-const CACHE_NAME = 'fp-dam-v2';
-const urlsToCache = ['./', './index.html', './manifest.json'];
-
-self.addEventListener('install', event => {
-  event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(urlsToCache)));
-  self.skipWaiting();
-});
-
-self.addEventListener('fetch', event => {
-  event.respondWith(
-    fetch(event.request)
-      .then(response => {
-        caches.open(CACHE_NAME).then(cache => cache.put(event.request, response.clone()));
-        return response;
-      })
-      .catch(() => caches.match(event.request))
-  );
-});
-```
+### Mobile-First
+- `max-width: 600px` container
+- `padding: env(safe-area-inset-top/bottom)` para PWA
+- Botones: `min-height: 50px`, `padding: 15px`
+- `font-size: 16px` mínimo
 
 ---
 
 ## ⚠️ REGLAS CRÍTICAS
 
-### **NO:**
-1. ❌ Agregar huecos de 15min
-2. ❌ Reducir por debajo de mínimos (1h, 45min, 45min, 15min)
-3. ❌ Mover bloques fixed
-4. ❌ Reducir almuerzo
-5. ❌ Extender después de 21:00
+### SIEMPRE:
+✅ Solo modificar `index.html`
+✅ Bloques fixed mantienen horario BASE_ACTIVITIES
+✅ Mínimos: 1h críticas, 30min leves, 15min learning
+✅ Rotar eliminación de capacitaciones
+✅ Ventana: 08:00-21:00
+✅ Domingo: 0 actividades
+✅ NO agregar 15min entre actividades (causa huecos)
+✅ Limpiar TODAS las propiedades boost/reducción al restaurar
 
-### **SÍ:**
-1. ✅ Horarios SIN HUECOS (`currentMinutes = endMinutes`)
-2. ✅ Respetar mínimos
-3. ✅ Rotar eliminación
-4. ✅ Dividir materias boosted >3h
-5. ✅ Establecer boosted, boostedMultiplier, boostedBaseHours
-6. ✅ Ventana estricta 08:00-21:00
-
----
-
-## ✅ CHECKLIST
-
-- [ ] BASE_ACTIVITIES completo (17, sin descanso1)
-- [ ] Firebase SDK configurado
-- [ ] applyUrgentBoost() completo
-- [ ] Mínimos correctos (1h, 45min, 45min, 15min)
-- [ ] Horarios SIN HUECOS
-- [ ] Bloques fixed no se mueven
-- [ ] División materias >3h
-- [ ] Rotación eliminación
-- [ ] Badge visual correcto
-- [ ] saveData() híbrido
-- [ ] loadData() async
-- [ ] manifest.json + service-worker.js
-- [ ] Safe-area insets
-- [ ] Notificaciones
-- [ ] Probar en Samsung A36
+### NUNCA:
+❌ Mover cena (21:00), familia (22:00), rutina (23:00)
+❌ Reducir críticas < 1h
+❌ Estudiar después de 21:00
+❌ Eliminar de BASE_ACTIVITIES (solo marcar hours: '0h')
+❌ Usar frameworks externos
+❌ Modificar manifest.json o service-worker.js
+❌ Agregar descansos entre actividades en recálculo
 
 ---
 
-**FIN - v1.0 Final - 12 Enero 2026**
+## 📦 DEPLOYMENT
+
+1. Usuario crea repo GitHub
+2. Sube 3 archivos: index.html, manifest.json, service-worker.js
+3. Settings → Pages → main branch
+4. Configura Firebase (opcional, ver FIREBASE-SETUP.md)
+5. URL: `username.github.io/repo-name`
+
+---
+
+## 🐛 BUGS SOLUCIONADOS EN v4.0
+
+### Bug 1: Booster se acumulaba
+**Causa:** No se limpiaban propiedades boosted al restaurar
+**Solución:** Delete de TODAS las propiedades en PASO 0
+
+### Bug 2: Huecos en horarios
+**Causa:** Se agregaban 15min entre TODAS las actividades
+**Solución:** Eliminado `currentMinutes + 15` en recálculo (línea ~749)
+
+### Bug 3: No mostraba reducciones
+**Causa:** Solo se marcaban boosts, no reducciones
+**Solución:** Agregar propiedades `reduced`, `originalHoursReduced`, `reducedHours` + badges azules
+
+### Bug 4: Firebase bloqueaba inicio
+**Causa:** loadData() esperaba Firebase (asíncrono)
+**Solución:** Cargar localStorage primero, Firebase en background sin bloquear
+
+---
+
+## 📊 ESTADO FINAL
+
+**Versión:** 4.0-firebase
+**Fecha:** 14 Enero 2026
+**Funcionalidades:**
+- ✅ Redistribución sin huecos
+- ✅ Visualización boost + reducción
+- ✅ Firebase sincronización
+- ✅ Notificaciones automáticas
+- ✅ Backup manual
+- ✅ PWA instalable
+- ✅ Domingo OFF
+
+---
+
+## 🚀 USO EN CHAT NUEVO
+
+**Prompt:**
+```
+Tengo esta app FP DAM Gestor (PWA gestión horarios estudio FP).
+
+[Subir: RESUMEN-COMPLETO-PROGRAMADOR.md + ZIP]
+
+La app funciona. Solo necesito [cambio específico].
+
+Importante:
+- NO romper lo que funciona
+- Solo modificar index.html
+- Respetar reglas críticas del resumen
+
+¿Puedes hacerlo?
+```
+
+---
+
+**FIN - Todo para duplicar la app está aquí** 🚀

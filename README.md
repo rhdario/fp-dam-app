@@ -1,239 +1,198 @@
-# 📚 FP DAM Gestor - PWA de Gestión de Estudio
+# 📚 FP DAM Gestor v4.0 - Gestión Inteligente de Horarios
 
-Progressive Web App (PWA) para gestionar el horario de estudio de **Formación Profesional DAM** (Desarrollo de Aplicaciones Multiplataforma) con **sistema inteligente de redistribución automática** cuando hay entregas urgentes.
+> Progressive Web App para gestionar tu horario de estudio de Formación Profesional DAM con redistribución automática de horarios y sincronización multiplataforma.
 
-![Estado](https://img.shields.io/badge/estado-activo-success)
-![Versión](https://img.shields.io/badge/versión-1.0-blue)
-![PWA](https://img.shields.io/badge/PWA-ready-purple)
-
----
+![Version](https://img.shields.io/badge/version-4.0-blue.svg)
+![License](https://img.shields.io/badge/license-MIT-green.svg)
+![Tech](https://img.shields.io/badge/tech-Vanilla_JS-yellow.svg)
+![Firebase](https://img.shields.io/badge/sync-Firebase-orange.svg)
 
 ## ✨ Características Principales
 
-### 🎯 **Gestión Inteligente de Horarios**
-- **7 materias FP** + **3 capacitaciones** + vida personal
-- Dos modos: **Con trabajo** (8h) o **Sin trabajo**
-- Redistribución automática con entregas urgentes (≤3 días)
-- Multiplicadores de tiempo: **x3 (HOY)**, **x2.5 (MAÑANA)**, **x2 (2-3 días)**
-- Sin huecos innecesarios entre materias
+### 🎯 Redistribución Inteligente
+- **Detecta entregas urgentes** (≤3 días) automáticamente
+- **Multiplica tiempo** según urgencia: x3 (hoy), x2.5 (mañana), x2 (2-3 días)
+- **Reorganiza horarios** liberando tiempo de materias menos prioritarias
+- **Respeta bloques intocables** (cena 21:00, familia 22:00, rutina 23:00)
 
-### ☁️ **Sincronización Multiplataforma**
-- Sincronización automática con **Firebase**
-- Backup local con **localStorage** (fallback)
-- Accede desde móvil, tablet o PC sin cargar backups
-- Tus datos siempre disponibles en todos tus dispositivos
+### 📱 Sincronización Multiplataforma con Firebase
+- ☁️ **Sincronización automática** entre móvil, tablet y PC
+- 🔄 **Actualización en tiempo real** - cambios aparecen en todos los dispositivos
+- 💾 **Backup automático** en la nube + backup manual local
+- 📡 **Funciona offline** - sincroniza cuando hay conexión
 
-### 📱 **PWA Instalable**
-- Funciona **offline** (Service Worker)
-- Instálala como app nativa en móvil/PC
-- Notificaciones push al inicio de cada actividad
-- Optimizada para **Samsung A36** y **Chrome Canary**
+### ⏰ Sistema de Alarmas
+- 🔔 **Notificaciones push** al inicio de cada actividad
+- 📊 **Progreso diario** con barra visual
+- ✅ **Checklist interactivo** para marcar tareas completadas
 
-### 📊 **Seguimiento y Estadísticas**
-- Vista diaria con progreso de tareas
-- Vista semanal con resumen
-- Gestión de entregas con alertas automáticas
-- Backup/Restore local + Google Drive
+### 📅 Vistas Completas
+- **Vista Diaria**: Agenda ordenada cronológicamente con indicadores de boost/reducción
+- **Vista Semanal**: Progreso de lunes a sábado (domingo OFF)
+- **Gestión de Entregas**: Control de fechas límite con alertas automáticas
+- **Estadísticas**: Análisis de rendimiento y hábitos de estudio
 
----
-
-## 🚀 Instalación y Uso
-
-### **1️⃣ Deployment en GitHub Pages**
-
-1. **Fork o clona** este repositorio
-2. Sube los archivos: `index.html`, `manifest.json`, `service-worker.js`
-3. Ve a **Settings → Pages**
-4. Selecciona **Source: main branch**
-5. Espera 2-3 minutos
-6. Accede a: `https://tu-usuario.github.io/nombre-repo`
-
-### **2️⃣ Instalación en Móvil**
-
-1. Abre la URL en **Chrome** o **Chrome Canary**
-2. Toca el menú (⋮) → **"Agregar a pantalla de inicio"**
-3. ¡Listo! La app funcionará como nativa
-
-### **3️⃣ Configuración Inicial**
-
-1. Selecciona si **tienes trabajo** o **no**
-2. Marca las **actividades** que quieres incluir
-3. La app calculará automáticamente tu horario óptimo
+### 🌙 Dos Modos de Horario
+- **Sin trabajo**: Ventana de estudio 08:00-21:00
+- **Con trabajo**: Horarios adaptados para trabajadores (jornada 8h)
 
 ---
 
-## 🔧 Configuración de Firebase (Opcional)
+## 🚀 Instalación Rápida
 
-Para habilitar la sincronización multiplataforma:
+### Opción 1: GitHub Pages (Recomendada)
 
-1. Ve a [Firebase Console](https://console.firebase.google.com/)
-2. Crea un nuevo proyecto
-3. Activa **Firestore Database**
-4. Copia tu configuración de Firebase
-5. Reemplaza en `index.html` (línea ~170):
+1. **Fork/Descarga** este repositorio
+2. **Sube los archivos** a tu repositorio GitHub
+3. **Activa GitHub Pages**:
+   - Settings → Pages
+   - Source: main branch
+   - Save
+4. **Espera 2-3 minutos**
+5. **Accede** desde cualquier dispositivo: `https://tu-usuario.github.io/tu-repo`
 
-```javascript
-const firebaseConfig = {
-    apiKey: "TU_API_KEY",
-    authDomain: "tu-proyecto.firebaseapp.com",
-    projectId: "tu-proyecto-id",
-    storageBucket: "tu-proyecto.appspot.com",
-    messagingSenderId: "123456789",
-    appId: "1:123456789:web:abcdef"
-};
-```
+### Opción 2: Uso Local
 
-### **Reglas de Firestore:**
-
-```javascript
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /users/{userId} {
-      allow read, write: if true;
-    }
-  }
-}
-```
-
-> **⚠️ IMPORTANTE:** Para producción, implementa Firebase Authentication.
-
-Ver guía completa en `FIREBASE-SETUP.md`.
+1. Descarga el ZIP
+2. Descomprime
+3. Abre `index.html` en tu navegador
 
 ---
 
-## 📋 Funcionalidades
+## ⚙️ Configurar Firebase (Sincronización)
 
-| Funcionalidad | Descripción |
-|--------------|-------------|
-| **Redistribución Inteligente** | Ajusta horarios automáticamente con entregas urgentes |
-| **Sin Huecos** | Horarios secuenciales sin descansos innecesarios |
-| **Alarmas Automáticas** | Notificaciones push al inicio de cada actividad |
-| **Progreso Diario** | % de tareas completadas del día |
-| **Domingo OFF** | Sin actividades programadas |
-| **Backup Local** | Descarga JSON de tus datos |
-| **Backup a Drive** | Integración con Google Drive |
-| **Modo Con/Sin Trabajo** | Cambia horarios según disponibilidad |
-| **Sincronización Cloud** | Firebase para múltiples dispositivos |
+Para habilitar sincronización entre dispositivos, sigue la guía completa en:
 
----
+📖 **[FIREBASE-SETUP.md](FIREBASE-SETUP.md)** (5 minutos)
 
-## 🎓 Estructura de Actividades
+**Resumen rápido:**
+1. Crea proyecto en [Firebase Console](https://console.firebase.google.com/)
+2. Habilita Realtime Database (modo Test)
+3. Copia la configuración
+4. Reemplaza en `index.html` línea ~166
+5. ¡Listo! Sincroniza automáticamente
 
-### **Materias FP (7)**
-- **Críticas (Mínimo 1h):** Programación, Base de Datos
-- **Importantes (Mínimo 45min):** Sistemas Informáticos, Entornos Desarrollo
-- **Leves (Mínimo 45min):** Lenguajes Marcas, Digitalización, Itinerario IPO
-
-### **Capacitaciones (3) - Mínimo 15min**
-- Inglés (L, M, J)
-- Estudiar IAs (L, X, V)
-- Estudiar SEO (M, J, V)
-
-### **Vida Personal**
-- Búsqueda Trabajo, Revisión del Día
-- Almuerzo (movible 14:00-15:15 ideal)
-- **Intocables:** Cena (21:00), Familia (22:00), Rutina Nocturna (23:00)
+**Sin Firebase:** La app funciona perfectamente, pero solo en cada dispositivo por separado.
 
 ---
 
-## 🐛 Sistema de Redistribución
+## 📖 Uso Diario
 
-### **Multiplicadores según urgencia:**
-```
-HOY (0 días):      x3   (+200% tiempo)
-MAÑANA (1 día):    x2.5 (+150% tiempo)
-2-3 días:          x2   (+100% tiempo)
-```
+### Primera Vez
 
-### **Orden de reducción:**
-1. **Reducir materias críticas/importantes** a mínimos (1h / 45min)
-2. **Eliminar Revisión del Día**
-3. **Reducir/Eliminar materias leves y capacitaciones** a mínimos (45min / 15min), rotando eliminación
-4. **Dividir materias muy largas** (>3h) en 2 bloques (mañana + tarde)
-5. **Recalcular horarios 08:00-21:00** sin huecos
+1. **¿Tienes trabajo?** → Elige tu situación laboral
+2. **Selecciona actividades** → Marca las materias que cursas
+3. **¡Empezar!** → La app genera tu horario
 
-### **Bloques intocables:**
-- Cena: 21:00-22:00
-- Familia: 22:00-23:00
-- Rutina Nocturna: 23:00-00:00
+### Agregar Entregas
 
-**NUNCA se mueven ni reducen.**
+1. Ve a **Entregas**
+2. Selecciona materia + fecha + descripción
+3. Clic **Agregar**
+4. **Automático**: Si faltan ≤3 días, los horarios se redistribuyen
 
----
+### Redistribución Automática
 
-## 🛠️ Stack Técnico
+Cuando agregas una entrega urgente (≤3 días):
 
-- **JavaScript Vanilla** (ES6+) - SIN frameworks
-- **HTML5 + CSS3** inline
-- **Firebase Firestore** para sincronización
-- **localStorage** para backup local
-- **PWA** con Service Worker
-- **Archivo único:** `index.html` (~1620 líneas)
+✅ La materia con entrega **multiplica sus horas** (x2, x2.5 o x3)
+✅ Otras materias se **reducen** para liberar tiempo
+✅ Se muestran badges:
+- 🔥 **Naranja**: Materia boosteada (ej: `2h → 5h`)
+- ⬇️ **Azul**: Materia reducida (ej: `1.5h → 1h`)
+
+✅ Los horarios se **recalculan automáticamente** sin huecos
+
+### Domingo OFF
+
+Los domingos no hay actividades programadas - es tu día de descanso.
 
 ---
 
-## 📱 Compatibilidad
+## 🛠️ Tecnologías
 
-| Dispositivo | Estado |
-|------------|--------|
-| **Samsung A36** | ✅ Optimizado |
-| Android | ✅ Compatible |
-| iPhone/iPad | ✅ Compatible |
-| PC/Mac | ✅ Compatible |
-| Chrome Canary | ✅ Recomendado |
-| Chrome/Firefox | ✅ Soportado |
+- **JavaScript Vanilla** (ES6+) - Sin frameworks
+- **Firebase Realtime Database** - Sincronización en tiempo real
+- **PWA** (Progressive Web App) - Instalable en móvil
+- **Service Worker** - Funciona offline
+- **CSS3** - Diseño responsive mobile-first
+- **Web Notifications API** - Alarmas automáticas
 
 ---
 
-## 🔒 Privacidad y Datos
+## 📊 Estructura de Actividades
 
-- **Datos guardados localmente** en tu navegador (localStorage)
-- **Sincronización opcional** con Firebase (requiere configuración)
-- **Sin tracking**, sin analytics, sin cookies de terceros
-- **Open source** - puedes revisar todo el código
+### 7 Materias FP
+- 🔴 **Críticas** (prioridad 1): Programación, Base de Datos
+- 🟡 **Importantes** (prioridad 2): Sistemas Informáticos, Entornos Desarrollo
+- 🟢 **Ligeras** (prioridad 3): Lenguajes Marcas, Digitalización, Itinerario IPO
+
+### 3 Capacitaciones
+- 🟣 Inglés, IAs, SEO (rotan por día de la semana)
+
+### Bloques Personales
+- Búsqueda Trabajo, Tiempo Libre, Revisión del Día
+- Descansos, Almuerzo
+- **Intocables** (NO se mueven): Cena, Familia, Rutina Nocturna
 
 ---
 
-## 📄 Licencia
+## 🔧 Solución de Problemas
 
-MIT License - Libre para uso personal y educativo.
+### Las notificaciones no aparecen
+- Otorga permisos al navegador
+- Chrome: Settings → Site Settings → Notifications → Permitir
+
+### No sincroniza entre dispositivos
+- Verifica que configuraste Firebase correctamente
+- Lee [FIREBASE-SETUP.md](FIREBASE-SETUP.md)
+- Revisa la consola del navegador (F12) para errores
+
+### Los horarios no se redistribuyen
+- La entrega debe tener ≤3 días hasta la fecha límite
+- Revisa la consola (F12) para ver logs de redistribución
+
+### Huecos en el horario
+- **Solucionado en v4.0** - Ahora los horarios se calculan sin espacios innecesarios
+
+---
+
+## 💾 Backup y Restauración
+
+Aunque Firebase sincroniza automáticamente, puedes hacer backups manuales:
+
+1. **Backup Local**: Settings → Descargar Backup (archivo .json)
+2. **Backup a Drive**: Settings → Backup a Google Drive
+3. **Restaurar**: Settings → Restaurar desde Backup (selecciona .json)
+
+---
+
+## 📜 Licencia
+
+MIT License - Uso libre para fines personales y educativos
 
 ---
 
 ## 🤝 Contribuciones
 
-Este es un proyecto personal educativo, pero siéntete libre de:
-- 🐛 Reportar bugs
-- 💡 Sugerir mejoras
-- 🔧 Enviar pull requests
+¿Encontraste un bug? ¿Tienes una mejora?
+1. Abre un Issue
+2. Fork el repositorio
+3. Crea una Pull Request
 
 ---
 
-## 📞 Soporte
+## 📧 Soporte
 
-¿Problemas con la instalación? Revisa:
-1. Que los 3 archivos estén en el mismo directorio
-2. Que GitHub Pages esté activado correctamente
-3. Que tu navegador soporte PWAs
-4. Consola del navegador (F12) para logs detallados
+Creado para estudiantes FP DAM en Ciutadella, Balearic Islands, ES
 
----
-
-## 🎯 Changelog v1.0
-
-### **Mejoras:**
-- ✅ Redistribución optimizada con mínimos correctos (1h, 45min, 45min, 15min)
-- ✅ Horarios secuenciales sin huecos innecesarios
-- ✅ División automática de materias muy largas (>3h) en 2 bloques
-- ✅ Rotación inteligente de eliminación de materias leves/capacitaciones
-- ✅ Badge visual mejorado del booster (muestra "2h → 4h 🔥")
-- ✅ Integración Firebase para sincronización multiplataforma
-- ✅ Almuerzo movible con horario ideal 14:00-15:15
-- ✅ Eliminación de descansos innecesarios (usuario usa Pomodoro)
+**¿Problemas con la app?**
+- Revisa la consola del navegador (F12)
+- Lee [FIREBASE-SETUP.md](FIREBASE-SETUP.md)
+- Lee [RESUMEN-COMPLETO-PROGRAMADOR.md](RESUMEN-COMPLETO-PROGRAMADOR.md) para detalles técnicos
 
 ---
 
-**Hecho con ❤️ para estudiantes de FP DAM**
+**v4.0** - Firebase Sync + Redistribución sin huecos + Visualización de reducciones
 
-*Versión 1.0 - Enero 2026*
+¡Éxito en tus estudios! 🎓📚

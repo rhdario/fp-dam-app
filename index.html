@@ -133,6 +133,10 @@
         .modal h3 { font-size: 22px; margin-bottom: 15px; }
         .modal-close { position: absolute; top: 15px; right: 15px; font-size: 28px; cursor: pointer; color: #6b7280; }
     </style>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 </head>
 <body>
     <!-- Loading Screen -->
@@ -150,8 +154,44 @@
     <div id="app" class="hide"></div>
     
     <script>
-        console.log('🚀 FP DAM Gestor - Versión JavaScript Vanilla Completa');
-        console.log('💾 Almacenamiento: localStorage permanente');
+        console.log('🚀 FP DAM Gestor - Versión 4.0 con Firebase');
+        console.log('💾 Almacenamiento: Firebase Realtime Database + localStorage');
+        
+        // =================================================================
+        // FIREBASE CONFIGURATION
+        // =================================================================
+        
+        // IMPORTANTE: Reemplaza con tu configuración de Firebase
+        // Instrucciones completas en FIREBASE-SETUP.md
+        const firebaseConfig = {
+            apiKey: "TU_API_KEY_AQUI",
+            authDomain: "TU_PROJECT_ID.firebaseapp.com",
+            databaseURL: "https://TU_PROJECT_ID-default-rtdb.firebaseio.com",
+            projectId: "TU_PROJECT_ID",
+            storageBucket: "TU_PROJECT_ID.appspot.com",
+            messagingSenderId: "TU_MESSAGING_ID",
+            appId: "TU_APP_ID"
+        };
+        
+        let db = null;
+        let firebaseEnabled = false;
+        const FIREBASE_PATH = 'fp-dam-user-data';
+        
+        // Inicializar Firebase si está configurado
+        try {
+            if (firebaseConfig.apiKey !== "TU_API_KEY_AQUI") {
+                firebase.initializeApp(firebaseConfig);
+                db = firebase.database();
+                firebaseEnabled = true;
+                console.log('✅ Firebase inicializado - sincronización activa');
+            } else {
+                console.log('⚠️ Firebase no configurado - usando solo localStorage');
+                console.log('📖 Lee FIREBASE-SETUP.md para habilitar sincronización');
+            }
+        } catch (e) {
+            console.error('❌ Error inicializando Firebase:', e);
+            console.log('📱 Continuando con localStorage solamente');
+        }
         
         // =================================================================
         // DATOS BASE
@@ -243,45 +283,80 @@
                     completedTasks: STATE.completedTasks,
                     deliveries: STATE.deliveries,
                     lastSaved: new Date().toISOString(),
-                    version: '3.0-vanilla'
+                    version: '4.0-firebase'
                 };
+                
+                // Guardar en localStorage (siempre, como fallback)
                 localStorage.setItem('fpDamApp', JSON.stringify(dataToSave));
+                
+                // Guardar en Firebase (asíncrono, no bloquea)
+                if (firebaseEnabled && db) {
+                    db.ref(FIREBASE_PATH).set(dataToSave).catch(err => {
+                        console.error('❌ Error Firebase:', err);
+                    });
+                }
+                
                 showSaveIndicator();
-                console.log('💾 Datos guardados:', new Date().toLocaleTimeString());
+                console.log('💾 Guardado:', new Date().toLocaleTimeString());
                 return true;
             } catch (e) {
                 console.error('❌ Error al guardar:', e);
-                alert('Error al guardar datos. Verifica el almacenamiento.');
                 return false;
             }
         }
         
         function loadData() {
+            // ESTRATEGIA: Cargar PRIMERO localStorage (rápido), luego Firebase (async)
             try {
                 const saved = localStorage.getItem('fpDamApp');
                 if (saved) {
                     const data = JSON.parse(saved);
-                    STATE.hasWork = data.hasWork;
-                    STATE.allActivities = data.allActivities || {...BASE_ACTIVITIES};
-                    STATE.activeActivities = data.activeActivities || [];
-                    STATE.completedTasks = data.completedTasks || {};
-                    STATE.deliveries = (data.deliveries || []).map(d => ({
-                        ...d,
-                        date: new Date(d.date),
-                        created: new Date(d.created || Date.now())
-                    }));
-                    
-                    if (STATE.hasWork !== null) {
-                        STATE.currentView = 'home';
-                    }
-                    console.log('✅ Datos cargados - MODO PERMANENTE');
-                    return true;
+                    applyDataToState(data);
+                    console.log('✅ Datos cargados de localStorage');
                 }
-                console.log('ℹ️ No hay datos guardados');
-                return false;
+                
+                // Cargar de Firebase en background (no bloquea)
+                if (firebaseEnabled && db) {
+                    db.ref(FIREBASE_PATH).once('value').then(snapshot => {
+                        const firebaseData = snapshot.val();
+                        if (firebaseData) {
+                            // Comparar timestamps
+                            const localTimestamp = saved ? JSON.parse(saved).lastSaved : null;
+                            const firebaseTimestamp = firebaseData.lastSaved;
+                            
+                            // Si Firebase es más reciente, actualizar
+                            if (!localTimestamp || firebaseTimestamp > localTimestamp) {
+                                console.log('☁️ Sincronizando desde Firebase...');
+                                applyDataToState(firebaseData);
+                                localStorage.setItem('fpDamApp', JSON.stringify(firebaseData));
+                                render(); // Re-renderizar con datos actualizados
+                            }
+                        }
+                    }).catch(err => {
+                        console.error('❌ Error Firebase:', err);
+                    });
+                }
+                
+                return saved !== null;
             } catch (e) {
                 console.error('❌ Error al cargar:', e);
                 return false;
+            }
+        }
+        
+        function applyDataToState(data) {
+            STATE.hasWork = data.hasWork;
+            STATE.allActivities = data.allActivities || {...BASE_ACTIVITIES};
+            STATE.activeActivities = data.activeActivities || [];
+            STATE.completedTasks = data.completedTasks || {};
+            STATE.deliveries = (data.deliveries || []).map(d => ({
+                ...d,
+                date: new Date(d.date),
+                created: new Date(d.created || Date.now())
+            }));
+            
+            if (STATE.hasWork !== null) {
+                STATE.currentView = 'home';
             }
         }
         
@@ -494,10 +569,13 @@
                 const stateAct = STATE.allActivities[key];
                 if (stateAct && baseAct[schedule]) {
                     stateAct[schedule] = { ...baseAct[schedule] };
-                    // Limpiar propiedades de boost
+                    // Limpiar TODAS las propiedades de boost y reducción
                     delete stateAct.boosted;
                     delete stateAct.originalHours;
                     delete stateAct.boostedHours;
+                    delete stateAct.reduced;
+                    delete stateAct.originalHoursReduced;
+                    delete stateAct.reducedHours;
                 }
             });
             
@@ -561,8 +639,15 @@
                 if (currentMinutes > minMinutes) {
                     const liberated = currentMinutes - minMinutes;
                     timeLiberated += liberated;
-                    sched.hours = `${(minMinutes / 60).toFixed(2)}h`;
-                    console.log(`⬇️ ${activity.name}: ${currentHours}h → 1h (libera ${(liberated/60).toFixed(2)}h)`);
+                    const newHours = minMinutes / 60;
+                    
+                    // Marcar como reducida
+                    activity.reduced = true;
+                    activity.originalHoursReduced = `${currentHours.toFixed(2)}h`;
+                    activity.reducedHours = `${newHours.toFixed(2)}h`;
+                    
+                    sched.hours = `${newHours.toFixed(2)}h`;
+                    console.log(`⬇️ ${activity.name}: ${currentHours}h → ${newHours}h (libera ${(liberated/60).toFixed(2)}h)`);
                 }
             });
             
@@ -745,8 +830,8 @@
                 
                 console.log(`✓ ${item.name}: ${item.schedule.start}-${item.schedule.end} (${item.hours}h)`);
                 
-                // Avanzar (con 15min de descanso implícito)
-                currentMinutes = endMinutes + 15;
+                // Avanzar al final de esta actividad (sin descansos adicionales)
+                currentMinutes = endMinutes;
             });
             
             console.log('✅ Redistribución completada');
@@ -1000,8 +1085,9 @@
                                 <div class="activity-name">${activity.name}</div>
                                 <div class="activity-time">⏰ ${sched.start} - ${sched.end}</div>
                             </div>
-                            <span class="badge ${activity.color}">${activity.boosted ? activity.boostedHours : sched.hours}</span>
+                            <span class="badge ${activity.color}">${activity.boosted ? activity.boostedHours : (activity.reduced ? activity.reducedHours : sched.hours)}</span>
                             ${activity.boosted ? `<span class="badge badge-orange">🔥 ${activity.originalHours} → ${activity.boostedHours}</span>` : ''}
+                            ${activity.reduced ? `<span class="badge badge-blue">⬇️ ${activity.originalHoursReduced} → ${activity.reducedHours}</span>` : ''}
                         </div>
                     `;
                 });
@@ -1301,9 +1387,9 @@
                     
                     <div class="card">
                         <p class="text-gray text-sm text-center">
-                            FP DAM Gestor v3.0 - JavaScript Vanilla<br>
-                            Almacenamiento: localStorage permanente<br>
-                            <strong>Dispositivo: Samsung A36</strong>
+                            FP DAM Gestor v4.0 - Firebase Sync<br>
+                            Sincronización: ${firebaseEnabled ? '☁️ Activa (todos tus dispositivos)' : '📱 Solo local (configura Firebase)'}<br>
+                            <strong>${firebaseEnabled ? 'Multiplataforma habilitada ✅' : 'Lee FIREBASE-SETUP.md para habilitar'}</strong>
                         </p>
                     </div>
                 </div>
